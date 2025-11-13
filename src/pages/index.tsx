@@ -59,7 +59,7 @@ export default function Home() {
   );
 
   /**
-   * 文ごとに音声を直列でリクエストしながら再生する
+   * 문장별로 음성을 직렬로 요청하면서 재생
    */
   const handleSpeakAi = useCallback(
     async (
@@ -73,7 +73,7 @@ export default function Home() {
   );
 
   /**
-   * アシスタントとの会話を行う
+   * 어시스턴트와 대화하기
    */
   const handleSendChat = useCallback(
     async (text: string) => {
@@ -85,16 +85,17 @@ export default function Home() {
       const newMessage = text;
 
       if (newMessage == null) return;
+      console.log("newMessage", newMessage );
 
       setChatProcessing(true);
-      // ユーザーの発言を追加して表示
+      // 사용자 발언 추가 및 표시
       const messageLog: Message[] = [
         ...chatLog,
         { role: "user", content: newMessage },
       ];
       setChatLog(messageLog);
 
-      // Chat GPTへ
+      // Chat GPT로
       const messages: Message[] = [
         {
           role: "system",
@@ -126,16 +127,16 @@ export default function Home() {
 
           receivedMessage += value;
 
-          // 返答内容のタグ部分の検出
+          // 응답 내용의 태그 부분 감지
           const tagMatch = receivedMessage.match(/^\[(.*?)\]/);
           if (tagMatch && tagMatch[0]) {
             tag = tagMatch[0];
             receivedMessage = receivedMessage.slice(tag.length);
           }
 
-          // 返答を一文単位で切り出して処理する
+          // 답변을 한 문장 단위로 잘라내어 처리
           const sentenceMatch = receivedMessage.match(
-            /^(.+[。．！？\n]|.{10,}[、,])/
+            /^(.+[.?!。．！？\n]|.{10,}[、,])/
           );
           if (sentenceMatch && sentenceMatch[0]) {
             const sentence = sentenceMatch[0];
@@ -144,27 +145,30 @@ export default function Home() {
               .slice(sentence.length)
               .trimStart();
 
-            // 発話不要/不可能な文字列だった場合はスキップ
-            if (
-              !sentence.replace(
-                /^[\s\[\(\{「［（【『〈《〔｛«‹〘〚〛〙›»〕》〉』】）］」\}\)\]]+$/g,
-                ""
-              )
-            ) {
-              continue;
-            }
+            // 발화 불필요/불가능한 문자열이면 건너뛰기
+            //if (
+            //  !sentence.replace(
+            //    /^[\s\[\(\{「［（【『〈《〔｛«‹〘〚〛〙›»〕》〉』】）］」\}\)\]]+$/g,
+            //    ""
+            //  )
+            //) {
+            //  continue;
+            //}
 
             const aiText = `${tag} ${sentence}`;
             const aiTalks = textsToScreenplay([aiText], koeiroParam);
             aiTextLog += aiText;
 
-            // 文ごとに音声を生成 & 再生、返答を表示
+            // 각 문장에 대한 음성 생성 및 재생, 답변 표시
             const currentAssistantMessage = sentences.join(" ");
-            handleSpeakAi(aiTalks[0], () => {
-              setAssistantMessage(currentAssistantMessage);
-            });
+            //handleSpeakAi(aiTalks[0], () => {
+            //  setAssistantMessage(currentAssistantMessage);
+            //});
+            setAssistantMessage(currentAssistantMessage);
+            console.log(`currentAssistantMessage ${currentAssistantMessage}`);
           }
         }
+        console.log(`receivedMessage ${receivedMessage}`);
       } catch (e) {
         setChatProcessing(false);
         console.error(e);
@@ -172,7 +176,7 @@ export default function Home() {
         reader.releaseLock();
       }
 
-      // アシスタントの返答をログに追加
+      // 어시스턴트 응답을 로그에 추가
       const messageLogAssistant: Message[] = [
         ...messageLog,
         { role: "assistant", content: aiTextLog },
