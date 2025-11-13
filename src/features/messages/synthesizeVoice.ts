@@ -1,5 +1,4 @@
 import { reduceTalkStyle } from "@/utils/reduceTalkStyle";
-import { koeiromapV0 } from "../koeiromap/koeiromap";
 import { TalkStyle } from "../messages/messages";
 
 export async function synthesizeVoice(
@@ -8,8 +7,9 @@ export async function synthesizeVoice(
   speakerY: number,
   style: TalkStyle
 ) {
-  const koeiroRes = await koeiromapV0(message, speakerX, speakerY, style);
-  return { audio: koeiroRes.audio };
+  //const koeiroRes = await koeiromapV0(message, speakerX, speakerY, style);
+  //return { audio: koeiroRes.audio };
+  return {};
 }
 
 export async function synthesizeVoiceApi(
