@@ -9,7 +9,7 @@ export async function getChatResponse(messages: Message[], apiKey: string) {
   const configuration = new Configuration({
     apiKey: apiKey,
   });
-  // ブラウザからAPIを叩くときに発生するエラーを無くすworkaround
+  // 브라우저에서 API를 호출할 때 발생하는 오류를 제거하는 workaround
   // https://github.com/openai/openai-node/issues/6#issuecomment-1492814621
   delete configuration.baseOptions.headers["User-Agent"];
 
@@ -21,7 +21,7 @@ export async function getChatResponse(messages: Message[], apiKey: string) {
   });
 
   const [aiRes] = data.choices;
-  const message = aiRes.message?.content || "エラーが発生しました";
+  const message = aiRes.message?.content || "에러가 발생했습니다.";
 
   return { message: message };
 }

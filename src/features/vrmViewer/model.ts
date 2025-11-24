@@ -8,7 +8,7 @@ import { EmoteController } from "../emoteController/emoteController";
 import { Screenplay } from "../messages/messages";
 
 /**
- * 3Dキャラクターを管理するクラス
+ * 3D 캐릭터를 관리하는 클래스
  */
 export class Model {
   public vrm?: VRM | null;
@@ -51,7 +51,7 @@ export class Model {
   }
 
   /**
-   * VRMアニメーションを読み込む
+   * VRM애니메이션을 로드 합니다. 
    *
    * https://github.com/vrm-c/vrm-specification/blob/master/specification/VRMC_vrm_animation-1.0/README.ja.md
    */
@@ -67,7 +67,7 @@ export class Model {
   }
 
   /**
-   * 音声を再生し、リップシンクを行う
+   * 음성을 재생하고 립싱크를 수행합니다.
    */
   public async speak(buffer: ArrayBuffer, screenplay: Screenplay) {
     this.emoteController?.playEmotion(screenplay.expression);

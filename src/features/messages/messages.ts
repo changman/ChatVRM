@@ -27,8 +27,8 @@ const emotions = ["neutral", "happy", "angry", "sad", "relaxed"] as const;
 type EmotionType = (typeof emotions)[number] & VRMExpressionPresetName;
 
 /**
- * 発話文と音声の感情と、モデルの感情表現がセットになった物
- */
+ * 발화문과 음성의 감정과 모델의 감정 표현이 설정된 것입니다.
+*/
 export type Screenplay = {
   expression: EmotionType;
   talk: Talk;
