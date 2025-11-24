@@ -11,31 +11,31 @@ type Props = {
   openAiKey: string;
   systemPrompt: string;
   chatLog: Message[];
-  koeiroParam: KoeiroParam;
+  voiceId: string;
   assistantMessage: string;
-  koeiromapKey: string;
+  elevenLabsKey: string;
   onChangeSystemPrompt: (systemPrompt: string) => void;
   onChangeAiKey: (key: string) => void;
   onChangeChatLog: (index: number, text: string) => void;
-  onChangeKoeiromapParam: (param: KoeiroParam) => void;
+  onChangeVoiceId: (voiceId: string) => void;
   handleClickResetChatLog: () => void;
   handleClickResetSystemPrompt: () => void;
-  onChangeKoeiromapKey: (key: string) => void;
+  onChangeElevenLabsKey: (key: string) => void;
 };
 export const Menu = ({
   openAiKey,
   systemPrompt,
   chatLog,
-  koeiroParam,
+  voiceId,
   assistantMessage,
-  koeiromapKey,
+  elevenLabsKey,
   onChangeSystemPrompt,
   onChangeAiKey,
   onChangeChatLog,
-  onChangeKoeiromapParam,
+  onChangeVoiceId,
   handleClickResetChatLog,
   handleClickResetSystemPrompt,
-  onChangeKoeiromapKey,
+  onChangeElevenLabsKey,
 }: Props) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showChatLog, setShowChatLog] = useState(false);
@@ -56,21 +56,18 @@ export const Menu = ({
     [onChangeAiKey]
   );
 
-  const handleChangeKoeiromapKey = useCallback(
+  const handleChangeElevenLabsKey = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      onChangeKoeiromapKey(event.target.value);
+      onChangeElevenLabsKey(event.target.value);
     },
-    [onChangeKoeiromapKey]
+    [onChangeElevenLabsKey]
   );
 
-  const handleChangeKoeiroParam = useCallback(
-    (x: number, y: number) => {
-      onChangeKoeiromapParam({
-        speakerX: x,
-        speakerY: y,
-      });
+  const handleChangeVoiceId = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      onChangeVoiceId(event.target.value);
     },
-    [onChangeKoeiromapParam]
+    [onChangeVoiceId]
   );
 
   const handleClickOpenVrmFile = useCallback(() => {
@@ -132,17 +129,17 @@ export const Menu = ({
           openAiKey={openAiKey}
           chatLog={chatLog}
           systemPrompt={systemPrompt}
-          koeiroParam={koeiroParam}
-          koeiromapKey={koeiromapKey}
+          voiceId={voiceId}
+          elevenLabsKey={elevenLabsKey}
           onClickClose={() => setShowSettings(false)}
           onChangeAiKey={handleAiKeyChange}
           onChangeSystemPrompt={handleChangeSystemPrompt}
           onChangeChatLog={onChangeChatLog}
-          onChangeKoeiroParam={handleChangeKoeiroParam}
+          onChangeVoiceId={handleChangeVoiceId}
           onClickOpenVrmFile={handleClickOpenVrmFile}
           onClickResetChatLog={handleClickResetChatLog}
           onClickResetSystemPrompt={handleClickResetSystemPrompt}
-          onChangeKoeiromapKey={handleChangeKoeiromapKey}
+          onChangeElevenLabsKey={handleChangeElevenLabsKey}
         />
       )}
       {!showChatLog && assistantMessage && (

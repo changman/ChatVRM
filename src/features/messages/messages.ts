@@ -17,9 +17,8 @@ const talkStyles = [
 export type TalkStyle = (typeof talkStyles)[number];
 
 export type Talk = {
+  voiceId: string;
   style: TalkStyle;
-  speakerX: number;
-  speakerY: number;
   message: string;
 };
 
@@ -41,6 +40,7 @@ export const splitSentence = (text: string): string[] => {
 
 export const textsToScreenplay = (
   texts: string[],
+  voiceId: string
 ): Screenplay[] => {
   const screenplays: Screenplay[] = [];
   let prevExpression = "neutral";
@@ -63,8 +63,7 @@ export const textsToScreenplay = (
       expression: expression as EmotionType,
       talk: {
         style: emotionToTalkStyle(expression as EmotionType),
-        speakerX: 0,
-        speakerY: 0,
+        voiceId: voiceId,
         message: message,
       },
     });

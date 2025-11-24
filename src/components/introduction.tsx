@@ -3,15 +3,15 @@ import { Link } from "./link";
 
 type Props = {
   openAiKey: string;
-  koeiroMapKey: string;
+  elevenLabsKey: string;
   onChangeAiKey: (openAiKey: string) => void;
-  onChangeKoeiromapKey: (koeiromapKey: string) => void;
+  onChangeElevenLabsKey: (elevenLabsKey: string) => void;
 };
 export const Introduction = ({
   openAiKey,
-  koeiroMapKey,
+  elevenLabsKey,
   onChangeAiKey,
-  onChangeKoeiromapKey,
+  onChangeElevenLabsKey,
 }: Props) => {
   const [opened, setOpened] = useState(true);
 
@@ -22,11 +22,11 @@ export const Introduction = ({
     [onChangeAiKey]
   );
 
-  const handleKoeiromapKeyChange = useCallback(
+  const handleElevenLabsKeyChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      onChangeKoeiromapKey(event.target.value);
+      onChangeElevenLabsKey(event.target.value);
     },
-    [onChangeKoeiromapKey]
+    [onChangeElevenLabsKey]
   );
 
   return opened ? (
@@ -58,20 +58,8 @@ export const Introduction = ({
               label={"ChatGPT API"}
             />
             、 音声合成には
-            <Link url={"https://koemotion.rinna.co.jp/"} label={"Koemotion"} />
-            の
-            <Link
-              url={
-                "https://developers.rinna.co.jp/product/#product=koeiromap-free"
-              }
-              label={"Koeiromap API"}
-            />
-            を使用しています。 詳細はこちらの
-            <Link
-              url={"https://inside.pixiv.blog/2023/04/28/160000"}
-              label={"技術解説記事"}
-            />
-            をご覧ください。
+            <Link url={"https://elevenlabs.io/"} label={"ElevenLabs"} />
+            を使用しています。
           </div>
           <div className="my-16">
             このデモはGitHubでソースコードを公開しています。自由に変更や改変をお試しください！
@@ -95,19 +83,19 @@ export const Introduction = ({
 
         <div className="my-24">
           <div className="my-8 font-bold typography-20 text-secondary">
-            Koeiromap APIキー
+            ElevenLabs API Key
           </div>
           <input
             type="text"
-            placeholder="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-            value={koeiroMapKey}
-            onChange={handleKoeiromapKeyChange}
+            placeholder="sk-..."
+            value={elevenLabsKey}
+            onChange={handleElevenLabsKeyChange}
             className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
           ></input>
           <div>
-            APIキーはrinna Developersから発行してください。
+            APIキーはElevenLabsのサイトから発行してください。
             <Link
-              url="https://developers.rinna.co.jp/product/#product=koeiromap-free"
+              url="https://elevenlabs.io/speech-synthesis"
               label="詳細はこちら"
             />
           </div>

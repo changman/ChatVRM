@@ -9,7 +9,7 @@ import {
 import { speakCharacter } from "@/features/messages/speakCharacter";
 import { MessageInputContainer } from "@/components/messageInputContainer";
 import { SYSTEM_PROMPT } from "@/features/constants/systemPromptConstants";
-import { KoeiroParam, DEFAULT_PARAM } from "@/features/constants/koeiroParam";
+
 import { getChatResponseStream } from "@/features/chat/openAiChat";
 import { Introduction } from "@/components/introduction";
 import { Menu } from "@/components/menu";
@@ -21,8 +21,8 @@ export default function Home() {
 
   const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT);
   const [openAiKey, setOpenAiKey] = useState("");
-  const [koeiromapKey, setKoeiromapKey] = useState("");
-  const [koeiroParam, setKoeiroParam] = useState<KoeiroParam>(DEFAULT_PARAM);
+  const [elevenLabsKey, setElevenLabsKey] = useState("");
+  const [voiceId, setVoiceId] = useState("21m00Tcm4TlvDq8ikWAM");
   const [chatProcessing, setChatProcessing] = useState(false);
   const [chatLog, setChatLog] = useState<Message[]>([]);
   const [assistantMessage, setAssistantMessage] = useState("");
@@ -33,7 +33,7 @@ export default function Home() {
         window.localStorage.getItem("chatVRMParams") as string
       );
       setSystemPrompt(params.systemPrompt ?? SYSTEM_PROMPT);
-      setKoeiroParam(params.koeiroParam ?? DEFAULT_PARAM);
+      setVoiceId(params.voiceId ?? "21m00Tcm4TlvDq8ikWAM");
       setChatLog(params.chatLog ?? []);
     }
   }, []);
@@ -42,10 +42,10 @@ export default function Home() {
     process.nextTick(() =>
       window.localStorage.setItem(
         "chatVRMParams",
-        JSON.stringify({ systemPrompt, koeiroParam, chatLog })
+        JSON.stringify({ systemPrompt, voiceId, chatLog })
       )
     );
-  }, [systemPrompt, koeiroParam, chatLog]);
+  }, [systemPrompt, voiceId, chatLog]);
 
   const handleChangeChatLog = useCallback(
     (targetIndex: number, text: string) => {
@@ -67,9 +67,9 @@ export default function Home() {
       onStart?: () => void,
       onEnd?: () => void
     ) => {
-      speakCharacter(screenplay, viewer, koeiromapKey, onStart, onEnd);
+      speakCharacter(screenplay, viewer, elevenLabsKey, onStart, onEnd);
     },
-    [viewer, koeiromapKey]
+    [viewer, elevenLabsKey]
   );
 
   /**
@@ -85,7 +85,7 @@ export default function Home() {
       const newMessage = text;
 
       if (newMessage == null) return;
-      console.log("newMessage", newMessage );
+      console.log("newMessage", newMessage);
 
       setChatProcessing(true);
       // 사용자 발언 추가 및 표시
@@ -156,15 +156,14 @@ export default function Home() {
             //}
 
             const aiText = `${tag} ${sentence}`;
-            const aiTalks = textsToScreenplay([aiText], koeiroParam);
+            const aiTalks = textsToScreenplay([aiText], voiceId);
             aiTextLog += aiText;
 
             // 각 문장에 대한 음성 생성 및 재생, 답변 표시
             const currentAssistantMessage = sentences.join(" ");
-            //handleSpeakAi(aiTalks[0], () => {
-            //  setAssistantMessage(currentAssistantMessage);
-            //});
-            setAssistantMessage(currentAssistantMessage);
+            handleSpeakAi(aiTalks[0], () => {
+              setAssistantMessage(currentAssistantMessage);
+            });
             console.log(`currentAssistantMessage ${currentAssistantMessage}`);
           }
         }
@@ -185,7 +184,7 @@ export default function Home() {
       setChatLog(messageLogAssistant);
       setChatProcessing(false);
     },
-    [systemPrompt, chatLog, handleSpeakAi, openAiKey, koeiroParam]
+    [systemPrompt, chatLog, handleSpeakAi, openAiKey, voiceId]
   );
 
   return (
@@ -193,9 +192,9 @@ export default function Home() {
       <Meta />
       <Introduction
         openAiKey={openAiKey}
-        koeiroMapKey={koeiromapKey}
+        elevenLabsKey={elevenLabsKey}
         onChangeAiKey={setOpenAiKey}
-        onChangeKoeiromapKey={setKoeiromapKey}
+        onChangeElevenLabsKey={setElevenLabsKey}
       />
       <VrmViewer />
       <MessageInputContainer
@@ -206,16 +205,16 @@ export default function Home() {
         openAiKey={openAiKey}
         systemPrompt={systemPrompt}
         chatLog={chatLog}
-        koeiroParam={koeiroParam}
+        voiceId={voiceId}
         assistantMessage={assistantMessage}
-        koeiromapKey={koeiromapKey}
+        elevenLabsKey={elevenLabsKey}
         onChangeAiKey={setOpenAiKey}
         onChangeSystemPrompt={setSystemPrompt}
         onChangeChatLog={handleChangeChatLog}
-        onChangeKoeiromapParam={setKoeiroParam}
+        onChangeVoiceId={setVoiceId}
         handleClickResetChatLog={() => setChatLog([])}
         handleClickResetSystemPrompt={() => setSystemPrompt(SYSTEM_PROMPT)}
-        onChangeKoeiromapKey={setKoeiromapKey}
+        onChangeElevenLabsKey={setElevenLabsKey}
       />
       <GitHubLink />
     </div>

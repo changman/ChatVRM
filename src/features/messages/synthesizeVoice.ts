@@ -14,19 +14,13 @@ export async function synthesizeVoice(
 
 export async function synthesizeVoiceApi(
   message: string,
-  speakerX: number,
-  speakerY: number,
+  voiceId: string,
   style: TalkStyle,
   apiKey: string
 ) {
-  //무료로 감정 제한
-  const reducedStyle = reduceTalkStyle(style);
-
   const body = {
     message: message,
-    speakerX: speakerX,
-    speakerY: speakerY,
-    style: reducedStyle,
+    voiceId: voiceId,
     apiKey: apiKey,
   };
 
