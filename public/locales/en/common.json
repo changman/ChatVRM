@@ -1,0 +1,59 @@
+{
+    "intro": {
+        "title": "About this Application",
+        "description": "You can enjoy conversations with 3D characters using only a web browser. You can communicate with characters using microphone, text input, and voice synthesis, and also change characters (VRM), configure personality, and adjust voice.",
+        "techTitle": "Technology Stack",
+        "techDescription": "For 3D model display and manipulation:",
+        "techDescription2": ", for dialogue generation:",
+        "techDescription3": ", for voice synthesis:",
+        "techDescription4": "are used.",
+        "githubDescription": "This demo's source code is available on GitHub. Feel free to modify and improve it!",
+        "repository": "Repository:",
+        "usageTitle": "Usage Guidelines",
+        "usageDescription": "Please do not intentionally induce discriminatory or violent statements, or statements that demean specific individuals. When replacing characters using VRM models, please follow the model's terms of use.",
+        "elevenLabsKeyTitle": "ElevenLabs API Key",
+        "elevenLabsKeyDescription": "Please obtain your API key from the ElevenLabs website.",
+        "elevenLabsKeyLink": "Learn more",
+        "openAiKeyTitle": "OpenAI API Key",
+        "openAiKeyDescription": "You can obtain your API key from the",
+        "openAiKeySite": "OpenAI website",
+        "openAiKeyDescription2": ". Please enter the obtained API key in the form.",
+        "openAiKeyNote": "ChatGPT API is accessed directly from the browser. API keys and conversation content are not saved on Pixiv's servers.",
+        "openAiKeyModel": "※The model being used is ChatGPT API (GPT-3.5).",
+        "startButton": "Enter API Key to Start"
+    },
+    "settings": {
+        "title": "Settings",
+        "openAiKeyTitle": "OpenAI API Key",
+        "openAiKeyDescription": "You can obtain your API key from the",
+        "openAiKeySite": "OpenAI website",
+        "openAiKeyDescription2": ". Please enter the obtained API key in the form.",
+        "openAiKeyNote": "ChatGPT API is accessed directly from the browser. API keys and conversation content are not saved on Pixiv's servers.",
+        "openAiKeyModel": "※The model being used is ChatGPT API (GPT-3.5).",
+        "characterModelTitle": "Character Model",
+        "openVrmButton": "Open VRM",
+        "systemPromptTitle": "Character Settings (System Prompt)",
+        "resetSystemPromptButton": "Reset Character Settings",
+        "voiceTitle": "Voice Adjustment",
+        "voiceDescription": "Using ElevenLabs API. For more details, please visit",
+        "voiceDescription2": ".",
+        "apiKeyLabel": "API Key",
+        "chatHistoryTitle": "Chat History",
+        "resetChatHistoryButton": "Reset Chat History",
+        "roleCharacter": "Character",
+        "roleYou": "You"
+    },
+    "menu": {
+        "settings": "Settings",
+        "chatLog": "Chat Log"
+    },
+    "messageInput": {
+        "placeholder": "Enter what you want to ask"
+    },
+    "errors": {
+        "noApiKey": "API key has not been entered"
+    },
+    "meta": {
+        "description": "You can enjoy conversations with 3D characters using only a web browser. You can communicate with characters using microphone, text input, and voice synthesis, and also change characters (VRM), configure personality, and adjust voice."
+    }
+}

@@ -6,6 +6,8 @@ import React, { useCallback, useContext, useRef, useState } from "react";
 import { Settings } from "./settings";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import { AssistantText } from "./assistantText";
+import { useTranslation } from 'next-i18next';
+import { LanguageSwitcher } from "./languageSwitcher";
 
 type Props = {
   openAiKey: string;
@@ -37,6 +39,7 @@ export const Menu = ({
   handleClickResetSystemPrompt,
   onChangeElevenLabsKey,
 }: Props) => {
+  const { t } = useTranslation('common');
   const [showSettings, setShowSettings] = useState(false);
   const [showChatLog, setShowChatLog] = useState(false);
   const { viewer } = useContext(ViewerContext);
@@ -101,26 +104,27 @@ export const Menu = ({
         <div className="grid grid-flow-col gap-[8px]">
           <IconButton
             iconName="24/Menu"
-            label="설정"
+            label={t('menu.settings')}
             isProcessing={false}
             onClick={() => setShowSettings(true)}
           ></IconButton>
           {showChatLog ? (
             <IconButton
               iconName="24/CommentOutline"
-              label="대화 로그"
+              label={t('menu.chatLog')}
               isProcessing={false}
               onClick={() => setShowChatLog(false)}
             />
           ) : (
             <IconButton
               iconName="24/CommentFill"
-              label="대화 로그"
+              label={t('menu.chatLog')}
               isProcessing={false}
               disabled={chatLog.length <= 0}
               onClick={() => setShowChatLog(true)}
             />
           )}
+          <LanguageSwitcher />
         </div>
       </div>
       {showChatLog && <ChatLog messages={chatLog} />}

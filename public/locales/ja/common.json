@@ -1,0 +1,59 @@
+{
+    "intro": {
+        "title": "このアプリケーションについて",
+        "description": "Webブラウザだけで3Dキャラクターとの会話を、マイクやテキスト入力、音声合成を用いて楽しめます。キャラクター（VRM）の変更や性格設定、音声調整もできます。",
+        "techTitle": "技術紹介",
+        "techDescription": "3Dモデルの表示や操作には",
+        "techDescription2": "、会話文生成には",
+        "techDescription3": "、音声合成には",
+        "techDescription4": "を使用しています。",
+        "githubDescription": "このデモはGitHubでソースコードを公開しています。自由に変更や改変をお試しください！",
+        "repository": "リポジトリ：",
+        "usageTitle": "利用上の注意",
+        "usageDescription": "差別的または暴力的な発言、特定の人物を貶めるような発言を、意図的に誘導しないでください。また、VRMモデルを使ってキャラクターを差し替える際はモデルの利用条件に従ってください。",
+        "elevenLabsKeyTitle": "ElevenLabs API Key",
+        "elevenLabsKeyDescription": "APIキーはElevenLabsのサイトから発行してください。",
+        "elevenLabsKeyLink": "詳細はこちら",
+        "openAiKeyTitle": "OpenAI APIキー",
+        "openAiKeyDescription": "APIキーは",
+        "openAiKeySite": "OpenAIのサイト",
+        "openAiKeyDescription2": "で取得できます。取得したAPIキーをフォームに入力してください。",
+        "openAiKeyNote": "ChatGPT APIはブラウザから直接アクセスしています。また、APIキーや会話内容はピクシブのサーバには保存されません。",
+        "openAiKeyModel": "※利用しているモデルはChatGPT API (GPT-3.5)です。",
+        "startButton": "APIキーを入力してはじめる"
+    },
+    "settings": {
+        "title": "設定",
+        "openAiKeyTitle": "OpenAI API キー",
+        "openAiKeyDescription": "APIキーは",
+        "openAiKeySite": "OpenAIのサイト",
+        "openAiKeyDescription2": "で取得できます。取得したAPIキーをフォームに入力してください。",
+        "openAiKeyNote": "ChatGPT APIはブラウザから直接アクセスしています。また、APIキーや会話内容はピクシブのサーバには保存されません。",
+        "openAiKeyModel": "※利用しているモデルはChatGPT API (GPT-3.5)です。",
+        "characterModelTitle": "キャラクターモデル",
+        "openVrmButton": "VRMを開く",
+        "systemPromptTitle": "キャラクター設定（システムプロンプト）",
+        "resetSystemPromptButton": "キャラクター設定リセット",
+        "voiceTitle": "声の調整",
+        "voiceDescription": "ElevenLabs APIを使用しています。詳しくは",
+        "voiceDescription2": "をご覧ください。",
+        "apiKeyLabel": "API キー",
+        "chatHistoryTitle": "会話履歴",
+        "resetChatHistoryButton": "会話履歴リセット",
+        "roleCharacter": "Character",
+        "roleYou": "You"
+    },
+    "menu": {
+        "settings": "設定",
+        "chatLog": "会話ログ"
+    },
+    "messageInput": {
+        "placeholder": "聞きたいことをいれてね"
+    },
+    "errors": {
+        "noApiKey": "APIキーが入力されていません"
+    },
+    "meta": {
+        "description": "Webブラウザだけで3Dキャラクターとの会話を、マイクやテキスト入力、音声合成を用いて楽しめます。キャラクター（VRM）の変更や性格設定、音声調整もできます。"
+    }
+}

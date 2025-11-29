@@ -15,9 +15,12 @@ import { Introduction } from "@/components/introduction";
 import { Menu } from "@/components/menu";
 import { GitHubLink } from "@/components/githubLink";
 import { Meta } from "@/components/meta";
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function Home() {
   const { viewer } = useContext(ViewerContext);
+  const { t } = useTranslation('common');
 
   const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT);
   const [openAiKey, setOpenAiKey] = useState("");
@@ -78,7 +81,7 @@ export default function Home() {
   const handleSendChat = useCallback(
     async (text: string) => {
       if (!openAiKey) {
-        setAssistantMessage("API 키가 입력되지 않았습니다");
+        setAssistantMessage(t('errors.noApiKey'));
         return;
       }
 
@@ -219,4 +222,12 @@ export default function Home() {
       <GitHubLink />
     </div>
   );
+}
+
+export async function getServerSideProps(context: any) {
+  return {
+    props: {
+      ...(await serverSideTranslations(context.locale, ['common'])),
+    },
+  };
 }

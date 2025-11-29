@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Message } from "@/features/messages/messages";
+import { useTranslation } from 'next-i18next';
 type Props = {
   messages: Message[];
 };
@@ -35,6 +36,7 @@ export const ChatLog = ({ messages }: Props) => {
 };
 
 const Chat = ({ role, message }: { role: string; message: string }) => {
+  const { t } = useTranslation('common');
   const roleColor =
     role === "assistant" ? "bg-secondary text-white " : "bg-base text-primary";
   const roleText = role === "assistant" ? "text-secondary" : "text-primary";
@@ -45,7 +47,7 @@ const Chat = ({ role, message }: { role: string; message: string }) => {
       <div
         className={`px-24 py-8 rounded-t-8 font-bold tracking-wider ${roleColor}`}
       >
-        {role === "assistant" ? "캐릭터" : "당신"}
+        {role === "assistant" ? t('settings.roleCharacter') : t('settings.roleYou')}
       </div>
       <div className="px-24 py-16 bg-white rounded-b-8">
         <div className={`typography-16 font-bold ${roleText}`}>{message}</div>

@@ -1,0 +1,59 @@
+{
+    "intro": {
+        "title": "이 애플리케이션에 대해",
+        "description": "웹 브라우저만으로 3D 캐릭터와 대화를 즐길 수 있습니다. 마이크나 텍스트 입력, 음성 합성을 사용하여 캐릭터와 소통하고, 캐릭터(VRM) 변경, 성격 설정, 음성 조정도 할 수 있습니다.",
+        "techTitle": "기술 소개",
+        "techDescription": "3D 모델 표시 및 조작은",
+        "techDescription2": ", 대화문 생성은",
+        "techDescription3": ", 음성 합성은",
+        "techDescription4": "를 사용합니다.",
+        "githubDescription": "이 데모는 GitHub에 소스 코드를 공개하고 있습니다. 자유롭게 수정하거나 개선해 보세요!",
+        "repository": "리포지토리：",
+        "usageTitle": "이용 시 주의사항",
+        "usageDescription": "차별적이거나 폭력적인 발언, 특정인을 비하하는 발언을 의도적으로 유도하지 마세요. 또한 VRM 모델을 사용하여 캐릭터를 변경할 때는 모델의 이용 조건을 준수해 주세요.",
+        "elevenLabsKeyTitle": "ElevenLabs API Key",
+        "elevenLabsKeyDescription": "API 키는 ElevenLabs 사이트에서 발급받으세요.",
+        "elevenLabsKeyLink": "자세히 보기",
+        "openAiKeyTitle": "OpenAI API 키",
+        "openAiKeyDescription": "API 키는",
+        "openAiKeySite": "OpenAI 사이트",
+        "openAiKeyDescription2": "에서 발급받을 수 있습니다. 발급받은 API 키를 입력란에 입력해 주세요.",
+        "openAiKeyNote": "ChatGPT API는 브라우저에서 직접 접근합니다. API 키와 대화 내용은 픽시브 서버에 저장되지 않습니다.",
+        "openAiKeyModel": "※사용 중인 모델은 ChatGPT API (GPT-3.5)입니다.",
+        "startButton": "API 키를 입력하고 시작하기"
+    },
+    "settings": {
+        "title": "설정",
+        "openAiKeyTitle": "OpenAI API 키",
+        "openAiKeyDescription": "API 키는",
+        "openAiKeySite": "OpenAI 사이트",
+        "openAiKeyDescription2": "에서 발급받을 수 있습니다. 발급받은 API 키를 입력란에 입력해 주세요.",
+        "openAiKeyNote": "ChatGPT API는 브라우저에서 직접 접근합니다. API 키와 대화 내용은 픽시브 서버에 저장되지 않습니다.",
+        "openAiKeyModel": "※사용 중인 모델은 ChatGPT API (GPT-3.5)입니다.",
+        "characterModelTitle": "캐릭터 모델",
+        "openVrmButton": "VRM 열기",
+        "systemPromptTitle": "캐릭터 설정 (시스템 프롬프트)",
+        "resetSystemPromptButton": "캐릭터 설정 초기화",
+        "voiceTitle": "음성 조정",
+        "voiceDescription": "ElevenLabs API를 사용합니다. 자세한 내용은",
+        "voiceDescription2": "를 참고하세요.",
+        "apiKeyLabel": "API 키",
+        "chatHistoryTitle": "대화 내역",
+        "resetChatHistoryButton": "대화 내역 초기화",
+        "roleCharacter": "캐릭터",
+        "roleYou": "당신"
+    },
+    "menu": {
+        "settings": "설정",
+        "chatLog": "대화 로그"
+    },
+    "messageInput": {
+        "placeholder": "궁금한 것을 입력해 주세요"
+    },
+    "errors": {
+        "noApiKey": "API 키가 입력되지 않았습니다"
+    },
+    "meta": {
+        "description": "웹 브라우저만으로 3D 캐릭터와 대화를 즐길 수 있습니다. 마이크나 텍스트 입력, 음성 합성을 사용하여 캐릭터와 소통하고, 캐릭터(VRM) 변경, 성격 설정, 음성 조정도 할 수 있습니다."
+    }
+}
