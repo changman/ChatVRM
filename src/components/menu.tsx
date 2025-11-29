@@ -101,21 +101,21 @@ export const Menu = ({
         <div className="grid grid-flow-col gap-[8px]">
           <IconButton
             iconName="24/Menu"
-            label="設定"
+            label="설정"
             isProcessing={false}
             onClick={() => setShowSettings(true)}
           ></IconButton>
           {showChatLog ? (
             <IconButton
               iconName="24/CommentOutline"
-              label="会話ログ"
+              label="대화 로그"
               isProcessing={false}
               onClick={() => setShowChatLog(false)}
             />
           ) : (
             <IconButton
               iconName="24/CommentFill"
-              label="会話ログ"
+              label="대화 로그"
               isProcessing={false}
               disabled={chatLog.length <= 0}
               onClick={() => setShowChatLog(true)}

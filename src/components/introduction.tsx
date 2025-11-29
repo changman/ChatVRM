@@ -34,37 +34,37 @@ export const Introduction = ({
       <div className="mx-auto my-auto max-w-3xl max-h-full p-24 overflow-auto bg-white rounded-16">
         <div className="my-24">
           <div className="my-8 font-bold typography-20 text-secondary ">
-            このアプリケーションについて
+            이 애플리케이션에 대해
           </div>
           <div>
-            Webブラウザだけで3Dキャラクターとの会話を、マイクやテキスト入力、音声合成を用いて楽しめます。キャラクター（VRM）の変更や性格設定、音声調整もできます。
+            웹 브라우저만으로 3D 캐릭터와 대화를 즐길 수 있습니다. 마이크나 텍스트 입력, 음성 합성을 사용하여 캐릭터와 소통하고, 캐릭터(VRM) 변경, 성격 설정, 음성 조정도 할 수 있습니다.
           </div>
         </div>
         <div className="my-24">
           <div className="my-8 font-bold typography-20 text-secondary">
-            技術紹介
+            기술 소개
           </div>
           <div>
-            3Dモデルの表示や操作には
+            3D 모델 표시 및 조작은
             <Link
               url={"https://github.com/pixiv/three-vrm"}
               label={"@pixiv/three-vrm"}
             />
-            、 会話文生成には
+            , 대화문 생성은
             <Link
               url={
                 "https://openai.com/blog/introducing-chatgpt-and-whisper-apis"
               }
               label={"ChatGPT API"}
             />
-            、 音声合成には
+            , 음성 합성은
             <Link url={"https://elevenlabs.io/"} label={"ElevenLabs"} />
-            を使用しています。
+            를 사용합니다.
           </div>
           <div className="my-16">
-            このデモはGitHubでソースコードを公開しています。自由に変更や改変をお試しください！
+            이 데모는 GitHub에 소스 코드를 공개하고 있습니다. 자유롭게 수정하거나 개선해 보세요!
             <br />
-            リポジトリ：
+            리포지토리：
             <Link
               url={"https://github.com/pixiv/ChatVRM"}
               label={"https://github.com/pixiv/ChatVRM"}
@@ -74,10 +74,10 @@ export const Introduction = ({
 
         <div className="my-24">
           <div className="my-8 font-bold typography-20 text-secondary">
-            利用上の注意
+            이용 시 주의사항
           </div>
           <div>
-            差別的または暴力的な発言、特定の人物を貶めるような発言を、意図的に誘導しないでください。また、VRMモデルを使ってキャラクターを差し替える際はモデルの利用条件に従ってください。
+            차별적이거나 폭력적인 발언, 특정인을 비하하는 발언을 의도적으로 유도하지 마세요. 또한 VRM 모델을 사용하여 캐릭터를 변경할 때는 모델의 이용 조건을 준수해 주세요.
           </div>
         </div>
 
@@ -93,16 +93,16 @@ export const Introduction = ({
             className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
           ></input>
           <div>
-            APIキーはElevenLabsのサイトから発行してください。
+            API 키는 ElevenLabs 사이트에서 발급받으세요.
             <Link
               url="https://elevenlabs.io/speech-synthesis"
-              label="詳細はこちら"
+              label="자세히 보기"
             />
           </div>
         </div>
         <div className="my-24">
           <div className="my-8 font-bold typography-20 text-secondary">
-            OpenAI APIキー
+            OpenAI API 키
           </div>
           <input
             type="text"
@@ -112,18 +112,17 @@ export const Introduction = ({
             className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
           ></input>
           <div>
-            APIキーは
+            API 키는
             <Link
               url="https://platform.openai.com/account/api-keys"
-              label="OpenAIのサイト"
+              label="OpenAI 사이트"
             />
-            で取得できます。取得したAPIキーをフォームに入力してください。
+            에서 발급받을 수 있습니다. 발급받은 API 키를 입력란에 입력해 주세요.
           </div>
           <div className="my-16">
-            ChatGPT
-            APIはブラウザから直接アクセスしています。また、APIキーや会話内容はピクシブのサーバには保存されません。
+            ChatGPT API는 브라우저에서 직접 접근합니다. API 키와 대화 내용은 픽시브 서버에 저장되지 않습니다.
             <br />
-            ※利用しているモデルはChatGPT API (GPT-3.5)です。
+            ※사용 중인 모델은 ChatGPT API (GPT-3.5)입니다.
           </div>
         </div>
         <div className="my-24">
@@ -133,7 +132,7 @@ export const Introduction = ({
             }}
             className="font-bold bg-secondary hover:bg-secondary-hover active:bg-secondary-press disabled:bg-secondary-disabled text-white px-24 py-8 rounded-oval"
           >
-            APIキーを入力してはじめる
+            API 키를 입력하고 시작하기
           </button>
         </div>
       </div>

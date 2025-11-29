@@ -78,7 +78,7 @@ export default function Home() {
   const handleSendChat = useCallback(
     async (text: string) => {
       if (!openAiKey) {
-        setAssistantMessage("APIキーが入力されていません");
+        setAssistantMessage("API 키가 입력되지 않았습니다");
         return;
       }
 

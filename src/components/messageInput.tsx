@@ -32,7 +32,7 @@ export const MessageInput = ({
             />
             <input
               type="text"
-              placeholder="聞きたいことをいれてね"
+              placeholder="궁금한 것을 입력해 주세요"
               onChange={onChangeUserMessage}
               disabled={isChatProcessing}
               className="bg-surface1 hover:bg-surface1-hover focus:bg-surface1 disabled:bg-surface1-disabled disabled:text-primary-disabled rounded-16 w-full px-16 text-text-primary typography-16 font-bold disabled"
@@ -49,7 +49,7 @@ export const MessageInput = ({
           </div>
         </div>
         <div className="py-4 bg-[#413D43] text-center text-white font-Montserrat">
-          powered by VRoid, Koemotion, ChatGPT API
+          powered by VRoid, ElevenLabs, ChatGPT API
         </div>
       </div>
     </div>
