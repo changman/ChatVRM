@@ -1,3 +1,5 @@
+import React from 'react';
+
 export const AssistantText = ({ message }: { message: string }) => {
   return (
     <div className="absolute bottom-0 left-0 mb-104  w-full">
