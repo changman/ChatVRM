@@ -74,96 +74,96 @@ export const Settings = ({
             <br />
             {t('settings.openAiKeyModel')}
           </div>
-        </div>
-        <div className="my-40">
-          <div className="my-16 typography-20 font-bold">
-            {t('settings.characterModelTitle')}
-          </div>
-          <div className="my-8">
-            <TextButton onClick={onClickOpenVrmFile}>{t('settings.openVrmButton')}</TextButton>
-          </div>
-        </div>
-        <div className="my-40">
-          <div className="my-8">
-            <div className="my-16 typography-20 font-bold">
-              {t('settings.systemPromptTitle')}
-            </div>
-            <TextButton onClick={onClickResetSystemPrompt}>
-              {t('settings.resetSystemPromptButton')}
-            </TextButton>
-          </div>
-
-          <textarea
-            value={systemPrompt}
-            onChange={onChangeSystemPrompt}
-            className="px-16 py-8  bg-surface1 hover:bg-surface1-hover h-168 rounded-8 w-full"
-          ></textarea>
-        </div>
-        <div className="my-40">
-          <div className="my-16 typography-20 font-bold">{t('settings.voiceTitle')}</div>
-          <div>
-            {t('settings.voiceDescription')}
-            <Link
-              url="https://elevenlabs.io/"
-              label="https://elevenlabs.io/"
-            />
-            {t('settings.voiceDescription2')}
-          </div>
-          <div className="mt-16 font-bold">{t('settings.apiKeyLabel')}</div>
-          <div className="mt-8">
-            <input
-              className="text-ellipsis px-16 py-8 w-col-span-2 bg-surface1 hover:bg-surface1-hover rounded-8"
-              type="text"
-              placeholder="..."
-              value={elevenLabsKey}
-              onChange={onChangeElevenLabsKey}
-            />
-          </div>
-
-          <div className="mt-16 font-bold">Voice ID</div>
-          <div className="mt-8">
-            <input
-              className="text-ellipsis px-16 py-8 w-col-span-2 bg-surface1 hover:bg-surface1-hover rounded-8"
-              type="text"
-              placeholder="..."
-              value={voiceId}
-              onChange={onChangeVoiceId}
-            />
-          </div>
-        </div>
-        {chatLog.length > 0 && (
           <div className="my-40">
-            <div className="my-8 grid-cols-2">
-              <div className="my-16 typography-20 font-bold">{t('settings.chatHistoryTitle')}</div>
-              <TextButton onClick={onClickResetChatLog}>
-                {t('settings.resetChatHistoryButton')}
-              </TextButton>
+            <div className="my-16 typography-20 font-bold">
+              {t('settings.characterModelTitle')}
             </div>
             <div className="my-8">
-              {chatLog.map((value, index) => {
-                return (
-                  <div
-                    key={index}
-                    className="my-8 grid grid-flow-col  grid-cols-[min-content_1fr] gap-x-fixed"
-                  >
-                    <div className="w-[64px] py-8">
-                      {value.role === "assistant" ? t('settings.roleCharacter') : t('settings.roleYou')}
-                    </div>
-                    <input
-                      key={index}
-                      className="bg-surface1 hover:bg-surface1-hover rounded-8 w-full px-16 py-8"
-                      type="text"
-                      value={value.content}
-                      onChange={(event) => {
-                        onChangeChatLog(index, event.target.value);
-                      }}
-                    ></input>
-                  </div>
-                );
-              })}
+              <TextButton onClick={onClickOpenVrmFile}>{t('settings.openVrmButton')}</TextButton>
             </div>
           </div>
-        )}
+          <div className="my-40">
+            <div className="my-8">
+              <div className="my-16 typography-20 font-bold">
+                {t('settings.systemPromptTitle')}
+              </div>
+              <TextButton onClick={onClickResetSystemPrompt}>
+                {t('settings.resetSystemPromptButton')}
+              </TextButton>
+            </div>
+
+            <textarea
+              value={systemPrompt}
+              onChange={onChangeSystemPrompt}
+              className="px-16 py-8  bg-surface1 hover:bg-surface1-hover h-168 rounded-8 w-full"
+            ></textarea>
+          </div>
+          <div className="my-40">
+            <div className="my-16 typography-20 font-bold">{t('settings.voiceTitle')}</div>
+            <div>
+              {t('settings.voiceDescription')}
+              <Link
+                url="https://elevenlabs.io/"
+                label="https://elevenlabs.io/"
+              />
+              {t('settings.voiceDescription2')}
+            </div>
+            <div className="mt-16 font-bold">{t('settings.apiKeyLabel')}</div>
+            <div className="mt-8">
+              <input
+                className="text-ellipsis px-16 py-8 w-col-span-2 bg-surface1 hover:bg-surface1-hover rounded-8"
+                type="text"
+                placeholder="..."
+                value={elevenLabsKey}
+                onChange={onChangeElevenLabsKey}
+              />
+            </div>
+
+            <div className="mt-16 font-bold">Voice ID</div>
+            <div className="mt-8">
+              <input
+                className="text-ellipsis px-16 py-8 w-col-span-2 bg-surface1 hover:bg-surface1-hover rounded-8"
+                type="text"
+                placeholder="..."
+                value={voiceId}
+                onChange={onChangeVoiceId}
+              />
+            </div>
+          </div>
+          {chatLog.length > 0 && (
+            <div className="my-40">
+              <div className="my-8 grid-cols-2">
+                <div className="my-16 typography-20 font-bold">{t('settings.chatHistoryTitle')}</div>
+                <TextButton onClick={onClickResetChatLog}>
+                  {t('settings.resetChatHistoryButton')}
+                </TextButton>
+              </div>
+              <div className="my-8">
+                {chatLog.map((value, index) => {
+                  return (
+                    <div
+                      key={index}
+                      className="my-8 grid grid-flow-col  grid-cols-[min-content_1fr] gap-x-fixed"
+                    >
+                      <div className="w-[64px] py-8">
+                        {value.role === "assistant" ? t('settings.roleCharacter') : t('settings.roleYou')}
+                      </div>
+                      <input
+                        key={index}
+                        className="bg-surface1 hover:bg-surface1-hover rounded-8 w-full px-16 py-8"
+                        type="text"
+                        value={value.content}
+                        onChange={(event) => {
+                          onChangeChatLog(index, event.target.value);
+                        }}
+                      ></input>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
