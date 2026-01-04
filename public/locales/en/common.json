@@ -38,10 +38,16 @@
         "voiceDescription": "Using ElevenLabs API. For more details, please visit",
         "voiceDescription2": ".",
         "apiKeyLabel": "API Key",
+        "apiKeyStorageWarning": "⚠️ API keys are stored in browser's localStorage. Use with caution on shared computers.",
+        "clearApiKeysButton": "Clear Stored API Keys",
+        "apiKeysCleared": "Stored API keys have been cleared.",
         "chatHistoryTitle": "Chat History",
         "resetChatHistoryButton": "Reset Chat History",
         "roleCharacter": "Character",
-        "roleYou": "You"
+        "roleYou": "You",
+        "lmmTitle": "LMM Settings",
+        "lmmDescription": "Select the AI model to use for conversation.",
+        "noteUsingGpt4": "※Using GPT-4 models requires a paid OpenAI API account and may incur higher costs."
     },
     "menu": {
         "settings": "Settings",

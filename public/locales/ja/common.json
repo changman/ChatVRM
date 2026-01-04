@@ -38,10 +38,16 @@
         "voiceDescription": "ElevenLabs APIを使用しています。詳しくは",
         "voiceDescription2": "をご覧ください。",
         "apiKeyLabel": "API キー",
+        "apiKeyStorageWarning": "⚠️ APIキーはブラウザのlocalStorageに保存されます。共用コンピュータでは使用にご注意ください。",
+        "clearApiKeysButton": "保存されたAPIキーを削除",
+        "apiKeysCleared": "保存されたAPIキーが削除されました。",
         "chatHistoryTitle": "会話履歴",
         "resetChatHistoryButton": "会話履歴リセット",
         "roleCharacter": "Character",
-        "roleYou": "You"
+        "roleYou": "You",
+        "lmmTitle": "モデル設定",
+        "lmmDescription": "会話に使用するAIモデルを選択してください。",
+        "noteUsingGpt4": "※GPT-4モデルを使用する場合、OpenAIの有料APIアカウントが必要であり、コストが高くなる可能性があります。"
     },
     "menu": {
         "settings": "設定",

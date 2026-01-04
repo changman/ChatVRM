@@ -26,6 +26,7 @@ export default function Home() {
   const [openAiKey, setOpenAiKey] = useState("");
   const [elevenLabsKey, setElevenLabsKey] = useState("");
   const [voiceId, setVoiceId] = useState("21m00Tcm4TlvDq8ikWAM");
+  const [chatModel, setChatModel] = useState("gpt-3.5-turbo");
   const [chatProcessing, setChatProcessing] = useState(false);
   const [chatLog, setChatLog] = useState<Message[]>([]);
   const [assistantMessage, setAssistantMessage] = useState("");
@@ -38,6 +39,7 @@ export default function Home() {
       );
       setSystemPrompt(params.systemPrompt ?? SYSTEM_PROMPT);
       setVoiceId(params.voiceId ?? "21m00Tcm4TlvDq8ikWAM");
+      setChatModel(params.chatModel ?? "gpt-3.5-turbo");
       setChatLog(params.chatLog ?? []);
     }
   }, []);
@@ -58,10 +60,10 @@ export default function Home() {
     process.nextTick(() =>
       window.localStorage.setItem(
         "chatVRMParams",
-        JSON.stringify({ systemPrompt, voiceId, chatLog })
+        JSON.stringify({ systemPrompt, voiceId, chatLog, chatModel })
       )
     );
-  }, [systemPrompt, voiceId, chatLog]);
+  }, [systemPrompt, voiceId, chatLog, chatModel]);
 
   // API 키 저장
   useEffect(() => {
@@ -141,7 +143,7 @@ export default function Home() {
         ...messageLog,
       ];
 
-      const stream = await getChatResponseStream(messages, openAiKey).catch(
+      const stream = await getChatResponseStream(messages, openAiKey, chatModel).catch(
         (e) => {
           console.error(e);
           return null;
@@ -221,7 +223,7 @@ export default function Home() {
       setChatLog(messageLogAssistant);
       setChatProcessing(false);
     },
-    [systemPrompt, chatLog, handleSpeakAi, openAiKey, voiceId]
+    [systemPrompt, chatLog, handleSpeakAi, openAiKey, voiceId, chatModel]
   );
 
   return (
@@ -244,12 +246,14 @@ export default function Home() {
         systemPrompt={systemPrompt}
         chatLog={chatLog}
         voiceId={voiceId}
+        chatModel={chatModel}
         assistantMessage={assistantMessage}
         elevenLabsKey={elevenLabsKey}
         onChangeAiKey={setOpenAiKey}
         onChangeSystemPrompt={setSystemPrompt}
         onChangeChatLog={handleChangeChatLog}
         onChangeVoiceId={setVoiceId}
+        onChangeChatModel={setChatModel}
         handleClickResetChatLog={() => setChatLog([])}
         handleClickResetSystemPrompt={() => setSystemPrompt(SYSTEM_PROMPT)}
         onChangeElevenLabsKey={setElevenLabsKey}

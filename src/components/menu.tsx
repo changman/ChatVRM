@@ -14,12 +14,14 @@ type Props = {
   systemPrompt: string;
   chatLog: Message[];
   voiceId: string;
+  chatModel: string;
   assistantMessage: string;
   elevenLabsKey: string;
   onChangeSystemPrompt: (systemPrompt: string) => void;
   onChangeAiKey: (key: string) => void;
   onChangeChatLog: (index: number, text: string) => void;
   onChangeVoiceId: (voiceId: string) => void;
+  onChangeChatModel: (model: string) => void;
   handleClickResetChatLog: () => void;
   handleClickResetSystemPrompt: () => void;
   onChangeElevenLabsKey: (key: string) => void;
@@ -30,12 +32,14 @@ export const Menu = ({
   systemPrompt,
   chatLog,
   voiceId,
+  chatModel,
   assistantMessage,
   elevenLabsKey,
   onChangeSystemPrompt,
   onChangeAiKey,
   onChangeChatLog,
   onChangeVoiceId,
+  onChangeChatModel,
   handleClickResetChatLog,
   handleClickResetSystemPrompt,
   onChangeElevenLabsKey,
@@ -136,12 +140,14 @@ export const Menu = ({
           chatLog={chatLog}
           systemPrompt={systemPrompt}
           voiceId={voiceId}
+          chatModel={chatModel}
           elevenLabsKey={elevenLabsKey}
           onClickClose={() => setShowSettings(false)}
           onChangeAiKey={handleAiKeyChange}
           onChangeSystemPrompt={handleChangeSystemPrompt}
           onChangeChatLog={onChangeChatLog}
           onChangeVoiceId={handleChangeVoiceId}
+          onChangeChatModel={onChangeChatModel}
           onClickOpenVrmFile={handleClickOpenVrmFile}
           onClickResetChatLog={handleClickResetChatLog}
           onClickResetSystemPrompt={handleClickResetSystemPrompt}
