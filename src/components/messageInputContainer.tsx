@@ -1,9 +1,13 @@
 import { MessageInput } from "@/components/messageInput";
 import { useState, useEffect, useCallback } from "react";
+import { useMicVAD } from "@ricky0123/vad-react";
+import { float32ArrayToWav } from "@/utils/audioWav";
+import { getSpeechToText } from "@/features/chat/speechToText";
 
 type Props = {
   isChatProcessing: boolean;
   onChatProcessStart: (text: string) => void;
+  openAiKey: string;
 };
 
 /**
@@ -15,68 +19,64 @@ type Props = {
 export const MessageInputContainer = ({
   isChatProcessing,
   onChatProcessStart,
+  openAiKey,
 }: Props) => {
   const [userMessage, setUserMessage] = useState("");
-  const [speechRecognition, setSpeechRecognition] =
-    useState<SpeechRecognition>();
-  const [isMicRecording, setIsMicRecording] = useState(false);
+  const [isProcessingStt, setIsProcessingStt] = useState(false);
 
-  // 音声認識の結果を処理する
-  const handleRecognitionResult = useCallback(
-    (event: SpeechRecognitionEvent) => {
-      const text = event.results[0][0].transcript;
-      setUserMessage(text);
+  const vad = useMicVAD({
+    startOnLoad: true, // VAD 자동 로드 시작
+    workletURL: "/vad.worklet.bundle.min.js",
+    modelURL: "/silero_vad_legacy.onnx",
+    ortConfig: (ort: any) => {
+      ort.env.wasm.wasmPaths = "/";
+      ort.env.wasm.numThreads = 1;
+    },
+    onSpeechEnd: async (audio: Float32Array) => {
+      if (isProcessingStt || isChatProcessing) return;
 
-      // 発言の終了時
-      if (event.results[0].isFinal) {
-        setUserMessage(text);
-        // 返答文の生成を開始
-        onChatProcessStart(text);
+      console.log("VAD: Speech ended, processing...");
+      setIsProcessingStt(true);
+      try {
+        const wavBlob = float32ArrayToWav(audio, 16000);
+        const text = await getSpeechToText(wavBlob, openAiKey);
+        console.log("VAD: Transcribed text:", text);
+        if (text && text.trim().length > 0) {
+          setUserMessage(text);
+          onChatProcessStart(text);
+        }
+      } catch (e) {
+        console.error("VAD STT Error:", e);
+      } finally {
+        setIsProcessingStt(false);
       }
     },
-    [onChatProcessStart]
-  );
-
-  // 無音が続いた場合も終了する
-  const handleRecognitionEnd = useCallback(() => {
-    setIsMicRecording(false);
-  }, []);
+    onVADMisfire: () => {
+      console.log("VAD: Misfire (noise detected)");
+    },
+    onSpeechStart: () => {
+      console.log("VAD: Speech started");
+    },
+  } as any);
 
   const handleClickMicButton = useCallback(() => {
-    if (isMicRecording) {
-      speechRecognition?.abort();
-      setIsMicRecording(false);
-
-      return;
+    console.log("Mic button clicked. Current state:", {
+      listening: vad.listening,
+      loading: vad.loading,
+      errored: vad.errored,
+    });
+    if (vad.listening) {
+      console.log("Pausing VAD...");
+      vad.pause();
+    } else {
+      console.log("Starting VAD...");
+      vad.start();
     }
-
-    speechRecognition?.start();
-    setIsMicRecording(true);
-  }, [isMicRecording, speechRecognition]);
+  }, [vad]);
 
   const handleClickSendButton = useCallback(() => {
     onChatProcessStart(userMessage);
   }, [onChatProcessStart, userMessage]);
-
-  useEffect(() => {
-    const SpeechRecognition =
-      window.webkitSpeechRecognition || window.SpeechRecognition;
-
-    // FirefoxなどSpeechRecognition非対応環境対策
-    if (!SpeechRecognition) {
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    //recognition.lang = "ja-JP";
-    recognition.lang = "ko-KR";
-    recognition.interimResults = true; // 認識の途中結果を返す
-    recognition.continuous = false; // 発言の終了時に認識を終了する
-
-    recognition.addEventListener("result", handleRecognitionResult);
-    recognition.addEventListener("end", handleRecognitionEnd);
-
-    setSpeechRecognition(recognition);
-  }, [handleRecognitionResult, handleRecognitionEnd]);
 
   useEffect(() => {
     if (!isChatProcessing) {
@@ -84,11 +84,19 @@ export const MessageInputContainer = ({
     }
   }, [isChatProcessing]);
 
+  // VAD 상태에 따라 마이크 아이콘 상태 결정
+  // vad.userSpeaking: 사용자가 말하는 중
+  // vad.loading: VAD 모델 로딩 중
+  // vad.errored: 에러 발생
+
+  const isMicRecording = vad.listening;
+
   return (
     <MessageInput
       userMessage={userMessage}
-      isChatProcessing={isChatProcessing}
-      isMicRecording={isMicRecording}
+      isChatProcessing={isChatProcessing || isProcessingStt} // STT 처리 중에도 입력 막음
+      isMicRecording={vad.listening && !vad.loading}
+      disabled={isChatProcessing || isProcessingStt || vad.loading}
       onChangeUserMessage={(e) => setUserMessage(e.target.value)}
       onClickMicButton={handleClickMicButton}
       onClickSendButton={handleClickSendButton}

@@ -23,6 +23,7 @@ type Props = {
   handleClickResetChatLog: () => void;
   handleClickResetSystemPrompt: () => void;
   onChangeElevenLabsKey: (key: string) => void;
+  handleClickClearApiKeys: () => void;
 };
 export const Menu = ({
   openAiKey,
@@ -38,6 +39,7 @@ export const Menu = ({
   handleClickResetChatLog,
   handleClickResetSystemPrompt,
   onChangeElevenLabsKey,
+  handleClickClearApiKeys,
 }: Props) => {
   const { t } = useTranslation('common');
   const [showSettings, setShowSettings] = useState(false);
@@ -144,6 +146,7 @@ export const Menu = ({
           onClickResetChatLog={handleClickResetChatLog}
           onClickResetSystemPrompt={handleClickResetSystemPrompt}
           onChangeElevenLabsKey={handleChangeElevenLabsKey}
+          onClickClearApiKeys={handleClickClearApiKeys}
         />
       )}
       {!showChatLog && assistantMessage && (

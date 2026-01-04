@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Link } from "./link";
 import { useTranslation } from 'next-i18next';
 
@@ -15,7 +15,33 @@ export const Introduction = ({
   onChangeElevenLabsKey,
 }: Props) => {
   const { t } = useTranslation('common');
-  const [opened, setOpened] = useState(true);
+
+  /**
+   * SSR hydration mismatch 방지를 위해 초기값은 false로 설정
+   * 클라이언트에서 마운트 후 localStorage 확인
+   */
+  const [opened, setOpened] = useState(false);
+
+  useEffect(() => {
+    // 클라이언트 사이드에서만 실행
+    if (typeof window !== 'undefined') {
+      const storedKeys = window.localStorage.getItem("chatVRMApiKeys");
+      if (storedKeys) {
+        try {
+          const { openAiKey } = JSON.parse(storedKeys);
+          // API 키가 없으면 팝업 열기
+          if (!openAiKey || openAiKey.trim() === "") {
+            setOpened(true);
+          }
+        } catch {
+          setOpened(true);
+        }
+      } else {
+        // localStorage에 키가 없으면 팝업 열기
+        setOpened(true);
+      }
+    }
+  }, []);
 
   const handleAiKeyChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {

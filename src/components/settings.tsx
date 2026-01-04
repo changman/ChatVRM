@@ -21,6 +21,7 @@ type Props = {
   onClickResetChatLog: () => void;
   onClickResetSystemPrompt: () => void;
   onChangeElevenLabsKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onClickClearApiKeys: () => void;
 };
 export const Settings = ({
   openAiKey,
@@ -37,6 +38,7 @@ export const Settings = ({
   onClickResetChatLog,
   onClickResetSystemPrompt,
   onChangeElevenLabsKey,
+  onClickClearApiKeys,
 }: Props) => {
   const { t } = useTranslation('common');
   return (
@@ -73,6 +75,16 @@ export const Settings = ({
             {t('settings.openAiKeyNote')}
             <br />
             {t('settings.openAiKeyModel')}
+          </div>
+          <div className="my-16 p-16 bg-orange-50 border border-orange-200 rounded-8">
+            <div className="text-sm text-orange-800">
+              {t('settings.apiKeyStorageWarning')}
+            </div>
+            <div className="mt-8">
+              <TextButton onClick={onClickClearApiKeys}>
+                {t('settings.clearApiKeysButton')}
+              </TextButton>
+            </div>
           </div>
           <div className="my-40">
             <div className="my-16 typography-20 font-bold">

@@ -10,6 +10,7 @@ type Props = {
   ) => void;
   onClickSendButton: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onClickMicButton: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  disabled?: boolean;
 };
 export const MessageInput = ({
   userMessage,
@@ -18,6 +19,7 @@ export const MessageInput = ({
   onChangeUserMessage,
   onClickMicButton,
   onClickSendButton,
+  disabled,
 }: Props) => {
   const { t } = useTranslation('common');
   return (
@@ -29,7 +31,7 @@ export const MessageInput = ({
               iconName="24/Microphone"
               className="bg-secondary hover:bg-secondary-hover active:bg-secondary-press disabled:bg-secondary-disabled"
               isProcessing={isMicRecording}
-              disabled={isChatProcessing}
+              disabled={isChatProcessing || disabled}
               onClick={onClickMicButton}
             />
             <input

@@ -30,6 +30,7 @@ export default function Home() {
   const [chatLog, setChatLog] = useState<Message[]>([]);
   const [assistantMessage, setAssistantMessage] = useState("");
 
+  // 일반 파라미터 로드 (systemPrompt, voiceId, chatLog)
   useEffect(() => {
     if (window.localStorage.getItem("chatVRMParams")) {
       const params = JSON.parse(
@@ -41,6 +42,18 @@ export default function Home() {
     }
   }, []);
 
+  // API 키 로드 (openAiKey, elevenLabsKey)
+  useEffect(() => {
+    if (window.localStorage.getItem("chatVRMApiKeys")) {
+      const apiKeys = JSON.parse(
+        window.localStorage.getItem("chatVRMApiKeys") as string
+      );
+      setOpenAiKey(apiKeys.openAiKey ?? "");
+      setElevenLabsKey(apiKeys.elevenLabsKey ?? "");
+    }
+  }, []);
+
+  // 일반 파라미터 저장
   useEffect(() => {
     process.nextTick(() =>
       window.localStorage.setItem(
@@ -49,6 +62,16 @@ export default function Home() {
       )
     );
   }, [systemPrompt, voiceId, chatLog]);
+
+  // API 키 저장
+  useEffect(() => {
+    process.nextTick(() =>
+      window.localStorage.setItem(
+        "chatVRMApiKeys",
+        JSON.stringify({ openAiKey, elevenLabsKey })
+      )
+    );
+  }, [openAiKey, elevenLabsKey]);
 
   const handleChangeChatLog = useCallback(
     (targetIndex: number, text: string) => {
@@ -60,6 +83,17 @@ export default function Home() {
     },
     [chatLog]
   );
+
+  /**
+   * 저장된 API 키 삭제
+   */
+  const handleClearApiKeys = useCallback(() => {
+    if (window.confirm(t('settings.apiKeysCleared'))) {
+      window.localStorage.removeItem("chatVRMApiKeys");
+      setOpenAiKey("");
+      setElevenLabsKey("");
+    }
+  }, [t]);
 
   /**
    * 문장별로 음성을 직렬로 요청하면서 재생
@@ -203,6 +237,7 @@ export default function Home() {
       <MessageInputContainer
         isChatProcessing={chatProcessing}
         onChatProcessStart={handleSendChat}
+        openAiKey={openAiKey}
       />
       <Menu
         openAiKey={openAiKey}
@@ -218,6 +253,7 @@ export default function Home() {
         handleClickResetChatLog={() => setChatLog([])}
         handleClickResetSystemPrompt={() => setSystemPrompt(SYSTEM_PROMPT)}
         onChangeElevenLabsKey={setElevenLabsKey}
+        handleClickClearApiKeys={handleClearApiKeys}
       />
       <GitHubLink />
     </div>
