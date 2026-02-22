@@ -1,4 +1,5 @@
 import { useCallback, useContext, useEffect, useState } from "react";
+import dynamic from 'next/dynamic';
 import VrmViewer from "@/components/vrmViewer";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import {
@@ -7,7 +8,11 @@ import {
   Screenplay,
 } from "@/features/messages/messages";
 import { speakCharacter } from "@/features/messages/speakCharacter";
-import { MessageInputContainer } from "@/components/messageInputContainer";
+// MessageInputContainer는 onnxruntime-web 의존성으로 인해 브라우저에서만 로드되도록 dynamic import를 사용합니다.
+const MessageInputContainer = dynamic(
+  () => import("@/components/messageInputContainer").then((mod) => mod.MessageInputContainer),
+  { ssr: false }
+);
 import { SYSTEM_PROMPT } from "@/features/constants/systemPromptConstants";
 
 import { getChatResponseStream } from "@/features/chat/openAiChat";
