@@ -1,6 +1,5 @@
 import { IconButton } from "./iconButton";
 import { Message } from "@/features/messages/messages";
-import { KoeiroParam } from "@/features/constants/koeiroParam";
 import { ChatLog } from "./chatLog";
 import React, { useCallback, useContext, useRef, useState } from "react";
 import { Settings } from "./settings";
@@ -10,39 +9,40 @@ import { useTranslation } from 'next-i18next';
 import { LanguageSwitcher } from "./languageSwitcher";
 
 type Props = {
-  openAiKey: string;
+  geminiApiKey: string;
   systemPrompt: string;
   chatLog: Message[];
-  voiceId: string;
+  voiceName: string;
   chatModel: string;
   assistantMessage: string;
-  elevenLabsKey: string;
   onChangeSystemPrompt: (systemPrompt: string) => void;
-  onChangeAiKey: (key: string) => void;
+  onChangeGeminiKey: (key: string) => void;
   onChangeChatLog: (index: number, text: string) => void;
-  onChangeVoiceId: (voiceId: string) => void;
+  onChangeVoiceName: (voiceName: string) => void;
   onChangeChatModel: (model: string) => void;
   handleClickResetChatLog: () => void;
   handleClickResetSystemPrompt: () => void;
-  onChangeElevenLabsKey: (key: string) => void;
   handleClickClearApiKeys: () => void;
 };
+
+/**
+ * 상단 메뉴 바 컴포넌트.
+ * 설정 화면, 대화 로그, 언어 전환 버튼을 제공합니다.
+ */
 export const Menu = ({
-  openAiKey,
+  geminiApiKey,
   systemPrompt,
   chatLog,
-  voiceId,
+  voiceName,
   chatModel,
   assistantMessage,
-  elevenLabsKey,
   onChangeSystemPrompt,
-  onChangeAiKey,
+  onChangeGeminiKey,
   onChangeChatLog,
-  onChangeVoiceId,
+  onChangeVoiceName,
   onChangeChatModel,
   handleClickResetChatLog,
   handleClickResetSystemPrompt,
-  onChangeElevenLabsKey,
   handleClickClearApiKeys,
 }: Props) => {
   const { t } = useTranslation('common');
@@ -58,25 +58,11 @@ export const Menu = ({
     [onChangeSystemPrompt]
   );
 
-  const handleAiKeyChange = useCallback(
+  const handleGeminiKeyChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      onChangeAiKey(event.target.value);
+      onChangeGeminiKey(event.target.value);
     },
-    [onChangeAiKey]
-  );
-
-  const handleChangeElevenLabsKey = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      onChangeElevenLabsKey(event.target.value);
-    },
-    [onChangeElevenLabsKey]
-  );
-
-  const handleChangeVoiceId = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      onChangeVoiceId(event.target.value);
-    },
-    [onChangeVoiceId]
+    [onChangeGeminiKey]
   );
 
   const handleClickOpenVrmFile = useCallback(() => {
@@ -87,12 +73,10 @@ export const Menu = ({
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const files = event.target.files;
       if (!files) return;
-
       const file = files[0];
       if (!file) return;
 
       const file_type = file.name.split(".").pop();
-
       if (file_type === "vrm") {
         const blob = new Blob([file], { type: "application/octet-stream" });
         const url = window.URL.createObjectURL(blob);
@@ -136,22 +120,20 @@ export const Menu = ({
       {showChatLog && <ChatLog messages={chatLog} />}
       {showSettings && (
         <Settings
-          openAiKey={openAiKey}
+          geminiApiKey={geminiApiKey}
           chatLog={chatLog}
           systemPrompt={systemPrompt}
-          voiceId={voiceId}
+          voiceName={voiceName}
           chatModel={chatModel}
-          elevenLabsKey={elevenLabsKey}
           onClickClose={() => setShowSettings(false)}
-          onChangeAiKey={handleAiKeyChange}
+          onChangeGeminiKey={handleGeminiKeyChange}
           onChangeSystemPrompt={handleChangeSystemPrompt}
           onChangeChatLog={onChangeChatLog}
-          onChangeVoiceId={handleChangeVoiceId}
+          onChangeVoiceName={onChangeVoiceName}
           onChangeChatModel={onChangeChatModel}
           onClickOpenVrmFile={handleClickOpenVrmFile}
           onClickResetChatLog={handleClickResetChatLog}
           onClickResetSystemPrompt={handleClickResetSystemPrompt}
-          onChangeElevenLabsKey={handleChangeElevenLabsKey}
           onClickClearApiKeys={handleClickClearApiKeys}
         />
       )}

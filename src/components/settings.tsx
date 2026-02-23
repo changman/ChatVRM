@@ -6,49 +6,69 @@ import { Link } from "./link";
 import { useTranslation } from 'next-i18next';
 import { SettingsCard } from "./settingsCard";
 
+/**
+ * Gemini TTS 보이스 옵션 목록
+ */
+const GEMINI_VOICES = [
+  { id: "Aoede", label: "Aoede (기본)" },
+  { id: "Charon", label: "Charon" },
+  { id: "Fenrir", label: "Fenrir" },
+  { id: "Kore", label: "Kore" },
+  { id: "Puck", label: "Puck" },
+];
+
+/**
+ * Gemini 모델 옵션 목록
+ */
+// 공식 문서 기준 Gemini Live API(bidiGenerateContent) 지원 모델 목록
+// 참고: https://ai.google.dev/gemini-api/docs/live-guide
+const GEMINI_MODELS = [
+  { id: "gemini-2.5-flash-native-audio-preview-12-2025", label: "Gemini 2.5 Flash Native Audio Preview (12-2025) ✓ 권장" },
+  { id: "gemini-2.0-flash-exp", label: "Gemini 2.0 Flash Exp (Legacy Live)" },
+];
+
 type Props = {
-  openAiKey: string;
+  geminiApiKey: string;
   systemPrompt: string;
   chatLog: Message[];
-  voiceId: string;
-  elevenLabsKey: string;
+  voiceName: string;
   chatModel: string;
   onClickClose: () => void;
-  onChangeAiKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChangeGeminiKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChangeSystemPrompt: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onChangeChatLog: (index: number, text: string) => void;
-  onChangeVoiceId: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChangeVoiceName: (voiceName: string) => void;
   onChangeChatModel: (model: string) => void;
   onClickOpenVrmFile: () => void;
   onClickResetChatLog: () => void;
   onClickResetSystemPrompt: () => void;
-  onChangeElevenLabsKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClickClearApiKeys: () => void;
 };
 
+/**
+ * 설정 화면 컴포넌트.
+ * General(Gemini API 키, 모델), Character(VRM, 시스템 프롬프트), Voice(TTS 보이스) 탭을 제공합니다.
+ */
 export const Settings = ({
-  openAiKey,
+  geminiApiKey,
   chatLog,
   systemPrompt,
-  voiceId,
-  elevenLabsKey,
+  voiceName,
   chatModel,
   onClickClose,
   onChangeSystemPrompt,
-  onChangeAiKey,
+  onChangeGeminiKey,
   onChangeChatLog,
-  onChangeVoiceId,
+  onChangeVoiceName,
   onChangeChatModel,
   onClickOpenVrmFile,
   onClickResetChatLog,
   onClickResetSystemPrompt,
-  onChangeElevenLabsKey,
   onClickClearApiKeys,
 }: Props) => {
   const { t } = useTranslation('common');
   const [activeTab, setActiveTab] = useState<'general' | 'character' | 'voice'>('general');
 
-  // Tab definitions
   const tabs = [
     { id: 'general', label: 'General' },
     { id: 'character', label: 'Character' },
@@ -56,7 +76,7 @@ export const Settings = ({
   ] as const;
 
   return (
-    <div className="absolute z-40 w-full h-full bg-white/90 backdrop-blur-xl overflow-hidden flex flex-col transition-all duration-300">
+    <div className={"absolute z-40 w-full h-full bg-white/90 backdrop-blur-xl overflow-hidden flex flex-col transition-all duration-300"}>
 
       {/* Header Section */}
       <div className="flex items-center justify-between px-24 py-16 border-b border-white/20 bg-white/40 shadow-sm z-50">
@@ -102,24 +122,23 @@ export const Settings = ({
             {/* ---------------- GENERAL TAB ---------------- */}
             {activeTab === 'general' && (
               <div className="flex flex-col" style={{ gap: '40px' }}>
-                {/* OpenAI API Key Card */}
-                <SettingsCard title={t('settings.openAiKeyTitle')} className="shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 bg-white/80">
-
+                {/* Gemini API Key Card */}
+                <SettingsCard title={t('settings.geminiKeyTitle')} className="shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 bg-white/80">
                   <div>
                     <div className="mb-8 text-sm text-gray-600">
-                      {t('settings.openAiKeyDescription')}
+                      {t('settings.geminiKeyDescription')}
                       <Link
-                        url="https://platform.openai.com/account/api-keys"
-                        label={t('settings.openAiKeySite')}
+                        url="https://aistudio.google.com/app/apikey"
+                        label={t('settings.geminiKeySite')}
                       />
-                      {t('settings.openAiKeyDescription2')}
+                      {t('settings.geminiKeyDescription2')}
                     </div>
                     <input
                       className="w-full px-16 py-12 bg-gray-50 border border-gray-200 rounded-16 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                      type="text"
-                      placeholder="sk-..."
-                      value={openAiKey}
-                      onChange={onChangeAiKey}
+                      type="password"
+                      placeholder="AIza..."
+                      value={geminiApiKey}
+                      onChange={onChangeGeminiKey}
                     />
                   </div>
 
@@ -127,37 +146,35 @@ export const Settings = ({
                     <span className="text-xl">⚠️</span>
                     <div className="flex-1">
                       <div className="font-semibold mb-1">{t('settings.apiKeyStorageWarning')}</div>
-                      <div className="opacity-80 mb-4 text-xs">This key is stored locally in your browser.</div>
+                      <div className="opacity-80 mb-4 text-xs">{t('settings.geminiKeyNote')}</div>
                       <TextButton onClick={onClickClearApiKeys} className="text-orange-600 hover:text-orange-700 underline">
                         {t('settings.clearApiKeysButton')}
                       </TextButton>
                     </div>
                   </div>
-
                 </SettingsCard>
 
-                {/* LMM / Model Settings Card */}
+                {/* Model Settings Card */}
                 <SettingsCard title={t('settings.lmmTitle')} description={t('settings.lmmDescription')} className="shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 bg-white/80">
                   <div className="flex flex-col gap-16">
                     <div className="flex flex-col gap-8">
-                      <label className="font-bold text-sm text-gray-700">Chat Model</label>
+                      <label className="font-bold text-sm text-gray-700">Gemini Model</label>
                       <div className="relative">
                         <select
                           className="w-full px-16 py-12 bg-gray-50 border border-gray-200 rounded-16 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none transition-all cursor-pointer"
                           value={chatModel}
                           onChange={(e) => onChangeChatModel(e.target.value)}
                         >
-                          <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-                          <option value="gpt-4">gpt-4</option>
-                          <option value="gpt-4-turbo">gpt-4-turbo</option>
-                          <option value="gpt-4o">gpt-4o</option>
+                          {GEMINI_MODELS.map((m) => (
+                            <option key={m.id} value={m.id}>{m.label}</option>
+                          ))}
                         </select>
                         <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
                           ▼
                         </div>
                       </div>
                       <div className="text-gray-400 text-xs">
-                        {t('settings.noteUsingGpt4')}
+                        {t('settings.noteUsingModel')}
                       </div>
                     </div>
                   </div>
@@ -181,7 +198,7 @@ export const Settings = ({
                 </SettingsCard>
 
                 {/* System Prompt Card */}
-                <SettingsCard title={t('settings.systemPromptTitle')} className="shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 bg-white/80">
+                <SettingsCard title={t('settings.systemPromptTitle')} className="shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 bg-white/80 mt-40">
                   <div className="flex flex-col gap-24">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-gray-500">Customize how the character behaves.</span>
@@ -208,34 +225,23 @@ export const Settings = ({
                   <div className="flex flex-col gap-16">
                     <div className="text-sm text-gray-600">
                       {t('settings.voiceDescription')}
-                      <Link
-                        url="https://elevenlabs.io/"
-                        label="https://elevenlabs.io/"
-                      />
-                      {t('settings.voiceDescription2')}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-                      <div className="flex flex-col gap-8">
-                        <div className="font-bold text-gray-700">{t('settings.apiKeyLabel')}</div>
-                        <input
-                          className="w-full px-16 py-12 bg-gray-50 border border-gray-200 rounded-16 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                          type="password"
-                          placeholder="Experiment with different voices..."
-                          value={elevenLabsKey}
-                          onChange={onChangeElevenLabsKey}
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-8">
-                        <div className="font-bold text-gray-700">Voice ID</div>
-                        <input
-                          className="w-full px-16 py-12 bg-gray-50 border border-gray-200 rounded-16 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                          type="text"
-                          placeholder="21m00Tcm4TlvDq8ikWAM"
-                          value={voiceId}
-                          onChange={onChangeVoiceId}
-                        />
+                    <div className="flex flex-col gap-8">
+                      <label className="font-bold text-gray-700">Voice</label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                        {GEMINI_VOICES.map((voice) => (
+                          <button
+                            key={voice.id}
+                            onClick={() => onChangeVoiceName(voice.id)}
+                            className={`px-16 py-12 rounded-16 border-2 text-sm font-medium transition-all ${voiceName === voice.id
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-primary/50'
+                              }`}
+                          >
+                            {voice.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>

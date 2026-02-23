@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import dynamic from 'next/dynamic';
 import VrmViewer from "@/components/vrmViewer";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
@@ -8,260 +8,321 @@ import {
   Screenplay,
 } from "@/features/messages/messages";
 import { speakCharacter } from "@/features/messages/speakCharacter";
-// MessageInputContainer는 onnxruntime-web 의존성으로 인해 브라우저에서만 로드되도록 dynamic import를 사용합니다.
-const MessageInputContainer = dynamic(
-  () => import("@/components/messageInputContainer").then((mod) => mod.MessageInputContainer),
-  { ssr: false }
-);
 import { SYSTEM_PROMPT } from "@/features/constants/systemPromptConstants";
-
-import { getChatResponseStream } from "@/features/chat/openAiChat";
 import { Introduction } from "@/components/introduction";
 import { Menu } from "@/components/menu";
 import { GitHubLink } from "@/components/githubLink";
 import { Meta } from "@/components/meta";
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { GeminiLiveSession } from "@/features/chat/geminiLiveChat";
+
+// MessageInputContainer는 브라우저에서만 로드되도록 dynamic import를 사용합니다.
+const MessageInputContainer = dynamic(
+  () => import("@/components/messageInputContainer").then((mod) => mod.MessageInputContainer),
+  { ssr: false }
+);
 
 export default function Home() {
   const { viewer } = useContext(ViewerContext);
   const { t } = useTranslation('common');
 
+  // ── 설정 상태 ──
   const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT);
-  const [openAiKey, setOpenAiKey] = useState("");
-  const [elevenLabsKey, setElevenLabsKey] = useState("");
-  const [voiceId, setVoiceId] = useState("21m00Tcm4TlvDq8ikWAM");
-  const [chatModel, setChatModel] = useState("gpt-3.5-turbo");
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [voiceName, setVoiceName] = useState("Aoede");
+  // Gemini Live API(bidiGenerateContent)를 지원하는 모델을 기본값으로 설정합니다.
+  // 일반 텍스트 모델(gemini-2.5-flash 등)은 Live API WebSocket 연결을 지원하지 않습니다.
+  // 공식 문서 참고: https://ai.google.dev/gemini-api/docs/live-guide
+  const [chatModel, setChatModel] = useState("gemini-2.5-flash-native-audio-preview-12-2025");
+
+  // ── 채팅 상태 ──
   const [chatProcessing, setChatProcessing] = useState(false);
   const [chatLog, setChatLog] = useState<Message[]>([]);
   const [assistantMessage, setAssistantMessage] = useState("");
 
-  // 일반 파라미터 로드 (systemPrompt, voiceId, chatLog)
+  // ── Gemini Live 세션 ──
+  const liveSessionRef = useRef<GeminiLiveSession | null>(null);
+  const [isSessionConnected, setIsSessionConnected] = useState(false);
+  const pendingTextRef = useRef<string>("");
+
+  // ── localStorage 파라미터 로드 ──
   useEffect(() => {
     if (window.localStorage.getItem("chatVRMParams")) {
       const params = JSON.parse(
         window.localStorage.getItem("chatVRMParams") as string
       );
       setSystemPrompt(params.systemPrompt ?? SYSTEM_PROMPT);
-      setVoiceId(params.voiceId ?? "21m00Tcm4TlvDq8ikWAM");
-      setChatModel(params.chatModel ?? "gpt-3.5-turbo");
+      setVoiceName(params.voiceName ?? "Aoede");
+
+      // 최신 Live API 전용 모델명을 기본값으로 설정
+      // 공식 문서 참고: https://ai.google.dev/gemini-api/docs/live-guide
+      const RECOMMENDED_MODEL = "gemini-2.5-flash-native-audio-preview-12-2025";
+      const savedModel = params.chatModel ?? RECOMMENDED_MODEL;
+
+      // Live API (bidiGenerateContent WebSocket) 지원 여부 확인:
+      // 유효한 모델 패턴:
+      //   - 'native-audio'가 포함되어야 함 (예: gemini-2.5-flash-native-audio-preview-12-2025)
+      //   - 예외: gemini-2.0-flash-exp 는 bidi 지원
+      // 무효한 모델 패턴:
+      //   - 'gemini-live-*' 형태의 구형 모델명 (API v1beta 미지원)
+      //   - gemini-2.5-flash, gemini-2.0-flash 등 일반 텍스트 모델
+      const isOldLiveFormat = savedModel.startsWith("gemini-live-");
+      const isValidLiveModel =
+        !isOldLiveFormat &&
+        (savedModel.includes("native-audio") || savedModel === "gemini-2.0-flash-exp");
+
+      if (!isValidLiveModel) {
+        console.warn(
+          `[Home] Live API 미지원 또는 구형 모델(${savedModel})을 감지하여 권장 모델로 자동 교정합니다: ${RECOMMENDED_MODEL}`
+        );
+        setChatModel(RECOMMENDED_MODEL);
+      } else {
+        setChatModel(savedModel);
+      }
+
       setChatLog(params.chatLog ?? []);
     }
   }, []);
 
-  // API 키 로드 (openAiKey, elevenLabsKey)
+  // ── localStorage API 키 로드 ──
   useEffect(() => {
     if (window.localStorage.getItem("chatVRMApiKeys")) {
       const apiKeys = JSON.parse(
         window.localStorage.getItem("chatVRMApiKeys") as string
       );
-      setOpenAiKey(apiKeys.openAiKey ?? "");
-      setElevenLabsKey(apiKeys.elevenLabsKey ?? "");
+      setGeminiApiKey(apiKeys.geminiApiKey ?? "");
     }
   }, []);
 
-  // 일반 파라미터 저장
+  // ── localStorage 파라미터 저장 ──
   useEffect(() => {
     process.nextTick(() =>
       window.localStorage.setItem(
         "chatVRMParams",
-        JSON.stringify({ systemPrompt, voiceId, chatLog, chatModel })
+        JSON.stringify({ systemPrompt, voiceName, chatLog, chatModel })
       )
     );
-  }, [systemPrompt, voiceId, chatLog, chatModel]);
+  }, [systemPrompt, voiceName, chatLog, chatModel]);
 
-  // API 키 저장
+  // ── localStorage API 키 저장 ──
   useEffect(() => {
     process.nextTick(() =>
       window.localStorage.setItem(
         "chatVRMApiKeys",
-        JSON.stringify({ openAiKey, elevenLabsKey })
+        JSON.stringify({ geminiApiKey })
       )
     );
-  }, [openAiKey, elevenLabsKey]);
+  }, [geminiApiKey]);
+
+  /**
+   * Gemini Live API 세션을 시작합니다.
+   * 이미 세션이 있으면 종료 후 재시작합니다.
+   */
+  const startLiveSession = useCallback(async () => {
+    if (!geminiApiKey) {
+      setAssistantMessage(t('errors.noApiKey'));
+      return;
+    }
+
+    console.log(`[Home] 세션 시작 시도: 모델=${chatModel}, 보이스=${voiceName}, API키=${geminiApiKey.substring(0, 5)}***`);
+
+    // 기존 세션 종료
+    if (liveSessionRef.current) {
+      liveSessionRef.current.disconnect();
+      liveSessionRef.current = null;
+      setIsSessionConnected(false);
+    }
+
+    const session = new GeminiLiveSession(
+      {
+        apiKey: geminiApiKey,
+        model: chatModel,
+        systemPrompt: systemPrompt,
+        voiceName: voiceName,
+      },
+      {
+        onText: (text: string) => {
+          // 수신된 텍스트가 누적된 전체 텍스트인지, 아니면 추가된 청크인지 확인
+          if (text.startsWith(pendingTextRef.current)) {
+            // 누적된 경우: 새로운 부분(Delta)만 추출하여 UI 업데이트
+            const newDelta = text.substring(pendingTextRef.current.length);
+            if (newDelta) {
+              setAssistantMessage((prev) => prev + newDelta);
+              pendingTextRef.current = text;
+            }
+          } else {
+            // 새로운 메시지이거나 형식이 다른 경우: 그대로 추가
+            pendingTextRef.current += text;
+            setAssistantMessage((prev) => prev + text);
+          }
+        },
+        onAudio: (buffer: ArrayBuffer) => {
+          // Gemini TTS 오디오 수신 → 립싱크 재생
+          if (!viewer.model) return;
+          const currentText = pendingTextRef.current;
+          const aiTalks = textsToScreenplay([currentText || "[neutral]"], voiceName);
+          speakCharacter(
+            aiTalks[0] ?? { expression: "neutral", talk: { style: "talk", voiceId: voiceName, message: "" } },
+            viewer,
+            buffer,
+            undefined, // UI 업데이트는 onText에서 처리하므로 여기서 생략
+            () => {
+              setChatProcessing(false);
+            }
+          );
+        },
+        onTranscript: (text: string) => {
+          // 사용자 발화 인식 결과 채팅 로그에 추가
+          if (text.trim()) {
+            setChatLog((prev) => [
+              ...prev,
+              { role: "user" as const, content: text },
+            ]);
+            setChatProcessing(true);
+            setAssistantMessage("");
+          }
+        },
+        onTurnComplete: () => {
+          // AI 응답 턴 완료 처리
+          if (pendingTextRef.current) {
+            const finalText = pendingTextRef.current;
+            setChatLog((prev) => [
+              ...prev,
+              { role: "assistant" as const, content: finalText },
+            ]);
+            pendingTextRef.current = "";
+          }
+          setChatProcessing(false);
+        },
+        onError: (error: Error) => {
+          console.error("[Home] Gemini Live 오류:", error);
+          setChatProcessing(false);
+          setIsSessionConnected(false);
+        },
+        onDisconnected: () => {
+          setIsSessionConnected(false);
+          setChatProcessing(false);
+          console.log("[Home] Gemini Live 세션 종료됨");
+        },
+      }
+    );
+
+    try {
+      await session.connect();
+      liveSessionRef.current = session;
+      setIsSessionConnected(true);
+    } catch (error) {
+      console.error("[Home] 세션 연결 실패:", error);
+      setAssistantMessage("Gemini Live API 연결에 실패했습니다. API 키를 확인해주세요.");
+    }
+  }, [geminiApiKey, chatModel, systemPrompt, voiceName, viewer, t]);
+
+  /**
+   * 세션이 없으면 시작, API 키나 모델 변경 시 재시작합니다.
+   */
+  useEffect(() => {
+    if (geminiApiKey && !isSessionConnected) {
+      startLiveSession();
+    }
+    // 컴포넌트 언마운트 시 세션 정리
+    return () => {
+      liveSessionRef.current?.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geminiApiKey]);
+
+  // 모델/음성/시스템프롬프트 변경 시 세션 재시작
+  useEffect(() => {
+    if (geminiApiKey && isSessionConnected) {
+      startLiveSession();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatModel, voiceName, systemPrompt]);
 
   const handleChangeChatLog = useCallback(
     (targetIndex: number, text: string) => {
       const newChatLog = chatLog.map((v: Message, i) => {
         return i === targetIndex ? { role: v.role, content: text } : v;
       });
-
       setChatLog(newChatLog);
     },
     [chatLog]
   );
 
   /**
-   * 저장된 API 키 삭제
+   * 텍스트 입력으로 메시지 전송 처리.
+   * Gemini Live 세션이 있으면 세션을 통해, 없으면 에러 메시지를 표시합니다.
+   */
+  const handleSendChat = useCallback(
+    async (text: string) => {
+      if (!geminiApiKey) {
+        setAssistantMessage(t('errors.noApiKey'));
+        return;
+      }
+      if (!text.trim()) return;
+
+      setChatProcessing(true);
+      setChatLog((prev) => [...prev, { role: "user" as const, content: text }]);
+      setAssistantMessage("");
+
+      if (liveSessionRef.current?.connected) {
+        liveSessionRef.current.sendText(text);
+      } else {
+        // 세션 재연결 시도
+        await startLiveSession();
+        if (liveSessionRef.current?.connected) {
+          liveSessionRef.current.sendText(text);
+        } else {
+          setAssistantMessage("세션 연결에 실패했습니다. 설정에서 API 키를 확인해주세요.");
+          setChatProcessing(false);
+        }
+      }
+    },
+    [geminiApiKey, startLiveSession, t]
+  );
+
+  /**
+   * 저장된 API 키 삭제 처리
    */
   const handleClearApiKeys = useCallback(() => {
     if (window.confirm(t('settings.apiKeysCleared'))) {
       window.localStorage.removeItem("chatVRMApiKeys");
-      setOpenAiKey("");
-      setElevenLabsKey("");
+      setGeminiApiKey("");
+      liveSessionRef.current?.disconnect();
+      liveSessionRef.current = null;
+      setIsSessionConnected(false);
     }
   }, [t]);
-
-  /**
-   * 문장별로 음성을 직렬로 요청하면서 재생
-   */
-  const handleSpeakAi = useCallback(
-    async (
-      screenplay: Screenplay,
-      onStart?: () => void,
-      onEnd?: () => void
-    ) => {
-      speakCharacter(screenplay, viewer, elevenLabsKey, onStart, onEnd);
-    },
-    [viewer, elevenLabsKey]
-  );
-
-  /**
-   * 어시스턴트와 대화하기
-   */
-  const handleSendChat = useCallback(
-    async (text: string) => {
-      if (!openAiKey) {
-        setAssistantMessage(t('errors.noApiKey'));
-        return;
-      }
-
-      const newMessage = text;
-
-      if (newMessage == null) return;
-      console.log("newMessage", newMessage);
-
-      setChatProcessing(true);
-      // 사용자 발언 추가 및 표시
-      const messageLog: Message[] = [
-        ...chatLog,
-        { role: "user", content: newMessage },
-      ];
-      setChatLog(messageLog);
-
-      // Chat GPT로
-      const messages: Message[] = [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        ...messageLog,
-      ];
-
-      const stream = await getChatResponseStream(messages, openAiKey, chatModel).catch(
-        (e) => {
-          console.error(e);
-          return null;
-        }
-      );
-      if (stream == null) {
-        setChatProcessing(false);
-        return;
-      }
-
-      const reader = stream.getReader();
-      let receivedMessage = "";
-      let aiTextLog = "";
-      let tag = "";
-      const sentences = new Array<string>();
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          receivedMessage += value;
-
-          // 응답 내용의 태그 부분 감지
-          const tagMatch = receivedMessage.match(/^\[(.*?)\]/);
-          if (tagMatch && tagMatch[0]) {
-            tag = tagMatch[0];
-            receivedMessage = receivedMessage.slice(tag.length);
-          }
-
-          // 답변을 한 문장 단위로 잘라내어 처리
-          const sentenceMatch = receivedMessage.match(
-            /^(.+[.?!。．！？\n]|.{10,}[、,])/
-          );
-          if (sentenceMatch && sentenceMatch[0]) {
-            const sentence = sentenceMatch[0];
-            sentences.push(sentence);
-            receivedMessage = receivedMessage
-              .slice(sentence.length)
-              .trimStart();
-
-            // 발화 불필요/불가능한 문자열이면 건너뛰기
-            //if (
-            //  !sentence.replace(
-            //    /^[\s\[\(\{「［（【『〈《〔｛«‹〘〚〛〙›»〕》〉』】）］」\}\)\]]+$/g,
-            //    ""
-            //  )
-            //) {
-            //  continue;
-            //}
-
-            const aiText = `${tag} ${sentence}`;
-            const aiTalks = textsToScreenplay([aiText], voiceId);
-            aiTextLog += aiText;
-
-            // 각 문장에 대한 음성 생성 및 재생, 답변 표시
-            const currentAssistantMessage = sentences.join(" ");
-            handleSpeakAi(aiTalks[0], () => {
-              setAssistantMessage(currentAssistantMessage);
-            });
-            console.log(`currentAssistantMessage ${currentAssistantMessage}`);
-          }
-        }
-        console.log(`receivedMessage ${receivedMessage}`);
-      } catch (e) {
-        setChatProcessing(false);
-        console.error(e);
-      } finally {
-        reader.releaseLock();
-      }
-
-      // 어시스턴트 응답을 로그에 추가
-      const messageLogAssistant: Message[] = [
-        ...messageLog,
-        { role: "assistant", content: aiTextLog },
-      ];
-
-      setChatLog(messageLogAssistant);
-      setChatProcessing(false);
-    },
-    [systemPrompt, chatLog, handleSpeakAi, openAiKey, voiceId, chatModel]
-  );
 
   return (
     <div className={"font-M_PLUS_2"}>
       <Meta />
       <Introduction
-        openAiKey={openAiKey}
-        elevenLabsKey={elevenLabsKey}
-        onChangeAiKey={setOpenAiKey}
-        onChangeElevenLabsKey={setElevenLabsKey}
+        geminiApiKey={geminiApiKey}
+        onChangeGeminiKey={setGeminiApiKey}
       />
       <VrmViewer />
       <MessageInputContainer
         isChatProcessing={chatProcessing}
         onChatProcessStart={handleSendChat}
-        openAiKey={openAiKey}
+        geminiApiKey={geminiApiKey}
+        liveSession={liveSessionRef.current}
       />
       <Menu
-        openAiKey={openAiKey}
+        geminiApiKey={geminiApiKey}
         systemPrompt={systemPrompt}
         chatLog={chatLog}
-        voiceId={voiceId}
+        voiceName={voiceName}
         chatModel={chatModel}
         assistantMessage={assistantMessage}
-        elevenLabsKey={elevenLabsKey}
-        onChangeAiKey={setOpenAiKey}
+        onChangeGeminiKey={setGeminiApiKey}
         onChangeSystemPrompt={setSystemPrompt}
         onChangeChatLog={handleChangeChatLog}
-        onChangeVoiceId={setVoiceId}
+        onChangeVoiceName={setVoiceName}
         onChangeChatModel={setChatModel}
         handleClickResetChatLog={() => setChatLog([])}
         handleClickResetSystemPrompt={() => setSystemPrompt(SYSTEM_PROMPT)}
-        onChangeElevenLabsKey={setElevenLabsKey}
         handleClickClearApiKeys={handleClearApiKeys}
       />
       <GitHubLink />

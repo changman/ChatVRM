@@ -1,102 +1,92 @@
 import { MessageInput } from "@/components/messageInput";
-import { useState, useEffect, useCallback } from "react";
-import { useMicVAD } from "@ricky0123/vad-react";
-import { float32ArrayToWav } from "@/utils/audioWav";
-import { getSpeechToText } from "@/features/chat/speechToText";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { GeminiLiveSession } from "@/features/chat/geminiLiveChat";
+import { MicrophoneCapture } from "@/utils/audioUtils";
 
 type Props = {
   isChatProcessing: boolean;
   onChatProcessStart: (text: string) => void;
-  openAiKey: string;
+  geminiApiKey: string;
+  onAudioReceived?: (buffer: ArrayBuffer) => void;
+  onTranscript?: (text: string) => void;
+  liveSession?: GeminiLiveSession | null;
 };
 
 /**
- * テキスト入力と音声入力を提供する
- *
- * 音声認識の完了時は自動で送信し、返答文の生成中は入力を無効化する
- *
+ * 텍스트 입력과 음성 입력을 제공하는 입력 컨테이너 컴포넌트.
+ * Gemini Live API 세션을 통해 실시간 마이크 스트리밍을 처리합니다.
+ * 음성 인식(VAD/STT)은 Gemini Live API 내장 기능을 사용합니다.
  */
 export const MessageInputContainer = ({
   isChatProcessing,
   onChatProcessStart,
-  openAiKey,
+  geminiApiKey,
+  onAudioReceived,
+  onTranscript,
+  liveSession,
 }: Props) => {
   const [userMessage, setUserMessage] = useState("");
-  const [isProcessingStt, setIsProcessingStt] = useState(false);
+  const [isMicActive, setIsMicActive] = useState(false);
+  const micCaptureRef = useRef<MicrophoneCapture | null>(null);
 
-  const vad = useMicVAD({
-    startOnLoad: true, // VAD 자동 로드 시작
-    workletURL: "/vad.worklet.bundle.min.js",
-    modelURL: "/silero_vad_legacy.onnx",
-    ortConfig: (ort: any) => {
-      ort.env.wasm.wasmPaths = "/";
-      ort.env.wasm.numThreads = 1;
-    },
-    onSpeechEnd: async (audio: Float32Array) => {
-      if (isProcessingStt || isChatProcessing) return;
-
-      console.log("VAD: Speech ended, processing...");
-      setIsProcessingStt(true);
-      try {
-        const wavBlob = float32ArrayToWav(audio, 16000);
-        const text = await getSpeechToText(wavBlob, openAiKey);
-        console.log("VAD: Transcribed text:", text);
-        if (text && text.trim().length > 0) {
-          setUserMessage(text);
-          onChatProcessStart(text);
-        }
-      } catch (e) {
-        console.error("VAD STT Error:", e);
-      } finally {
-        setIsProcessingStt(false);
-      }
-    },
-    onVADMisfire: () => {
-      console.log("VAD: Misfire (noise detected)");
-    },
-    onSpeechStart: () => {
-      console.log("VAD: Speech started");
-    },
-  } as any);
-
-  const handleClickMicButton = useCallback(() => {
-    console.log("Mic button clicked. Current state:", {
-      listening: vad.listening,
-      loading: vad.loading,
-      errored: vad.errored,
-    });
-    if (vad.listening) {
-      console.log("Pausing VAD...");
-      vad.pause();
-    } else {
-      console.log("Starting VAD...");
-      vad.start();
+  /**
+   * 마이크 버튼 클릭 시 마이크 캡처를 시작/중지합니다.
+   * Gemini Live API 세션이 연결된 경우 오디오를 실시간으로 전송합니다.
+   */
+  const handleClickMicButton = useCallback(async () => {
+    if (isMicActive) {
+      // 마이크 중지
+      micCaptureRef.current?.stop();
+      micCaptureRef.current = null;
+      setIsMicActive(false);
+      return;
     }
-  }, [vad]);
 
+    // 마이크 시작
+    try {
+      const capture = new MicrophoneCapture((pcm: ArrayBuffer) => {
+        if (liveSession?.connected) {
+          liveSession.sendAudio(pcm);
+        }
+      });
+      await capture.start();
+      micCaptureRef.current = capture;
+      setIsMicActive(true);
+    } catch (error) {
+      console.error("[MessageInputContainer] 마이크 시작 실패:", error);
+    }
+  }, [isMicActive, liveSession]);
+
+  /**
+   * 텍스트 전송 버튼 클릭 시 처리합니다.
+   * Gemini Live API 세션이 있으면 세션을 통해, 없으면 상위 핸들러로 전송합니다.
+   */
   const handleClickSendButton = useCallback(() => {
+    if (!userMessage.trim()) return;
+    // index.tsx의 handleSendChat에서 세션 체크 및 전송을 통합 처리하도록 변경
     onChatProcessStart(userMessage);
   }, [onChatProcessStart, userMessage]);
 
+  // 채팅 처리 완료 시 입력 초기화
   useEffect(() => {
     if (!isChatProcessing) {
       setUserMessage("");
     }
   }, [isChatProcessing]);
 
-  // VAD 상태에 따라 마이크 아이콘 상태 결정
-  // vad.userSpeaking: 사용자가 말하는 중
-  // vad.loading: VAD 모델 로딩 중
-  // vad.errored: 에러 발생
-
-  const isMicRecording = vad.listening;
+  // 컴포넌트 언마운트 시 마이크 정리
+  useEffect(() => {
+    return () => {
+      micCaptureRef.current?.stop();
+    };
+  }, []);
 
   return (
     <MessageInput
       userMessage={userMessage}
-      isChatProcessing={isChatProcessing || isProcessingStt} // STT 처리 중에도 입력 막음
-      isMicRecording={vad.listening && !vad.loading}
-      disabled={isChatProcessing || isProcessingStt || vad.loading}
+      isChatProcessing={isChatProcessing}
+      isMicRecording={isMicActive}
+      disabled={isChatProcessing}
       onChangeUserMessage={(e) => setUserMessage(e.target.value)}
       onClickMicButton={handleClickMicButton}
       onClickSendButton={handleClickSendButton}

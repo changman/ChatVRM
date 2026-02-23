@@ -3,65 +3,56 @@ import { Link } from "./link";
 import { useTranslation } from 'next-i18next';
 
 type Props = {
-  openAiKey: string;
-  elevenLabsKey: string;
-  onChangeAiKey: (openAiKey: string) => void;
-  onChangeElevenLabsKey: (elevenLabsKey: string) => void;
+  geminiApiKey: string;
+  onChangeGeminiKey: (geminiApiKey: string) => void;
 };
+
+/**
+ * 초기 실행 시 Gemini API 키 입력을 안내하는 팝업 컴포넌트.
+ * localStorage에 키가 저장되어 있으면 팝업을 건너뜁니다.
+ */
 export const Introduction = ({
-  openAiKey,
-  elevenLabsKey,
-  onChangeAiKey,
-  onChangeElevenLabsKey,
+  geminiApiKey,
+  onChangeGeminiKey,
 }: Props) => {
   const { t } = useTranslation('common');
 
   /**
-   * SSR hydration mismatch 방지를 위해 초기값은 false로 설정
-   * 클라이언트에서 마운트 후 localStorage 확인
+   * SSR hydration mismatch 방지를 위해 초기값은 false로 설정.
+   * 클라이언트에서 마운트 후 localStorage 확인합니다.
    */
   const [opened, setOpened] = useState(false);
 
   useEffect(() => {
-    // 클라이언트 사이드에서만 실행
     if (typeof window !== 'undefined') {
       const storedKeys = window.localStorage.getItem("chatVRMApiKeys");
       if (storedKeys) {
         try {
-          const { openAiKey } = JSON.parse(storedKeys);
-          // API 키가 없으면 팝업 열기
-          if (!openAiKey || openAiKey.trim() === "") {
+          const { geminiApiKey: storedKey } = JSON.parse(storedKeys);
+          if (!storedKey || storedKey.trim() === "") {
             setOpened(true);
           }
         } catch {
           setOpened(true);
         }
       } else {
-        // localStorage에 키가 없으면 팝업 열기
         setOpened(true);
       }
     }
   }, []);
 
-  const handleAiKeyChange = useCallback(
+  const handleGeminiKeyChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      onChangeAiKey(event.target.value);
+      onChangeGeminiKey(event.target.value);
     },
-    [onChangeAiKey]
-  );
-
-  const handleElevenLabsKeyChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      onChangeElevenLabsKey(event.target.value);
-    },
-    [onChangeElevenLabsKey]
+    [onChangeGeminiKey]
   );
 
   return opened ? (
-    <div className="absolute z-40 w-full h-full px-24 py-40  bg-black/30 font-M_PLUS_2">
+    <div className="absolute z-40 w-full h-full px-24 py-40 bg-black/30 font-M_PLUS_2">
       <div className="mx-auto my-auto max-w-3xl max-h-full p-24 overflow-auto bg-white rounded-16">
         <div className="my-24">
-          <div className="my-8 font-bold typography-20 text-secondary ">
+          <div className="my-8 font-bold typography-20 text-secondary">
             {t('intro.title')}
           </div>
           <div>
@@ -80,13 +71,9 @@ export const Introduction = ({
             />
             {t('intro.techDescription2')}
             <Link
-              url={
-                "https://openai.com/blog/introducing-chatgpt-and-whisper-apis"
-              }
-              label={"ChatGPT API"}
+              url={"https://ai.google.dev/gemini-api/docs/live"}
+              label={"Gemini Live API"}
             />
-            {t('intro.techDescription3')}
-            <Link url={"https://elevenlabs.io/"} label={"ElevenLabs"} />
             {t('intro.techDescription4')}
           </div>
           <div className="my-16">
@@ -111,48 +98,28 @@ export const Introduction = ({
 
         <div className="my-24">
           <div className="my-8 font-bold typography-20 text-secondary">
-            {t('intro.elevenLabsKeyTitle')}
+            {t('intro.geminiKeyTitle')}
           </div>
           <input
-            type="text"
-            placeholder="sk-..."
-            value={elevenLabsKey}
-            onChange={handleElevenLabsKeyChange}
-            className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
+            type="password"
+            placeholder="AIza..."
+            value={geminiApiKey}
+            onChange={handleGeminiKeyChange}
+            className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis font-mono"
           ></input>
           <div>
-            {t('intro.elevenLabsKeyDescription')}
+            {t('intro.geminiKeyDescription')}
             <Link
-              url="https://elevenlabs.io/speech-synthesis"
-              label={t('intro.elevenLabsKeyLink')}
+              url="https://aistudio.google.com/app/apikey"
+              label={t('intro.geminiKeySite')}
             />
+            {t('intro.geminiKeyDescription2')}
+          </div>
+          <div className="my-16 text-sm text-gray-500">
+            {t('intro.geminiKeyNote')}
           </div>
         </div>
-        <div className="my-24">
-          <div className="my-8 font-bold typography-20 text-secondary">
-            {t('intro.openAiKeyTitle')}
-          </div>
-          <input
-            type="text"
-            placeholder="sk-..."
-            value={openAiKey}
-            onChange={handleAiKeyChange}
-            className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-          ></input>
-          <div>
-            {t('intro.openAiKeyDescription')}
-            <Link
-              url="https://platform.openai.com/account/api-keys"
-              label={t('intro.openAiKeySite')}
-            />
-            {t('intro.openAiKeyDescription2')}
-          </div>
-          <div className="my-16">
-            {t('intro.openAiKeyNote')}
-            <br />
-            {t('intro.openAiKeyModel')}
-          </div>
-        </div>
+
         <div className="my-24">
           <button
             onClick={() => {

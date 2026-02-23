@@ -1,9 +1,12 @@
 import { wait } from "@/utils/wait";
-import { synthesizeVoiceApi } from "./synthesizeVoice";
 import { Viewer } from "../vrmViewer/viewer";
 import { Screenplay } from "./messages";
-import { Talk } from "./messages";
 
+/**
+ * 음성 재생 직렬화 함수 생성기.
+ * Gemini Live API에서 수신한 오디오 버퍼를 순서대로 재생하며
+ * 립싱크 및 감정 표현을 함께 처리합니다.
+ */
 const createSpeakCharacter = () => {
   let lastTime = 0;
   let prevFetchPromise: Promise<unknown> = Promise.resolve();
@@ -12,31 +15,22 @@ const createSpeakCharacter = () => {
   return (
     screenplay: Screenplay,
     viewer: Viewer,
-    apiKey: string,
+    audioBuffer: ArrayBuffer,
     onStart?: () => void,
     onComplete?: () => void
   ) => {
     const fetchPromise = prevFetchPromise.then(async () => {
-      const now = Date.now();
-      if (now - lastTime < 1000) {
-        await wait(1000 - (now - lastTime));
-      }
-
-      const buffer = await fetchAudio(screenplay.talk, apiKey).catch(
-        () => null
-      );
-      lastTime = Date.now();
-      return buffer;
+      return audioBuffer;
     });
 
     prevFetchPromise = fetchPromise;
     prevSpeakPromise = Promise.all([fetchPromise, prevSpeakPromise]).then(
-      ([audioBuffer]) => {
+      ([buffer]) => {
         onStart?.();
-        if (!audioBuffer) {
+        if (!buffer) {
           return;
         }
-        return viewer.model?.speak(audioBuffer, screenplay);
+        return viewer.model?.speak(buffer, screenplay);
       }
     );
     prevSpeakPromise.then(() => {
@@ -46,28 +40,3 @@ const createSpeakCharacter = () => {
 };
 
 export const speakCharacter = createSpeakCharacter();
-
-export const fetchAudio = async (
-  talk: Talk,
-  apiKey: string
-): Promise<ArrayBuffer> => {
-  console.log("fetchAudio calling synthesizeVoiceApi", { voiceId: talk.voiceId, message: talk.message });
-  const ttsVoice = await synthesizeVoiceApi(
-    talk.message,
-    talk.voiceId,
-    talk.style,
-    apiKey
-  );
-  const url = ttsVoice.audio;
-
-  if (url == null || url === "") {
-    console.error("fetchAudio: Audio URL is null or empty");
-    throw new Error("Something went wrong");
-  }
-
-  console.log("fetchAudio got url, fetching audio buffer...");
-  const resAudio = await fetch(url);
-  const buffer = await resAudio.arrayBuffer();
-  console.log("fetchAudio got buffer", buffer.byteLength);
-  return buffer;
-};
