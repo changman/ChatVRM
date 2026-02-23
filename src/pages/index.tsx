@@ -44,6 +44,9 @@ export default function Home() {
   // ── Gemini Live 세션 ──
   const liveSessionRef = useRef<GeminiLiveSession | null>(null);
   const [isSessionConnected, setIsSessionConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting" | "reconnecting" | "error">("disconnected");
+  const reconnectCountRef = useRef(0);
+  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingTextRef = useRef<string>("");
 
   // ── localStorage 파라미터 로드 ──
@@ -117,21 +120,28 @@ export default function Home() {
 
   /**
    * Gemini Live API 세션을 시작합니다.
-   * 이미 세션이 있으면 종료 후 재시작합니다.
+   * 지수 백오프 기반의 자동 재연결 기능을 포함합니다.
    */
-  const startLiveSession = useCallback(async () => {
+  const startLiveSession = useCallback(async (isAutoReconnect = false) => {
     if (!geminiApiKey) {
       setAssistantMessage(t('errors.noApiKey'));
+      setConnectionStatus("disconnected");
       return;
     }
 
-    console.log(`[Home] 세션 시작 시도: 모델=${chatModel}, 보이스=${voiceName}, API키=${geminiApiKey.substring(0, 5)}***`);
+    if (isAutoReconnect) {
+      setConnectionStatus("reconnecting");
+      console.log(`[Home] 자동 재연결 시도 중... (횟수: ${reconnectCountRef.current})`);
+    } else {
+      setConnectionStatus("connecting");
+      reconnectCountRef.current = 0; // 수동 시작 시 횟수 초기화
+    }
 
-    // 기존 세션 종료
+    // 기존 타이머 및 세션 정리
+    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
     if (liveSessionRef.current) {
       liveSessionRef.current.disconnect();
       liveSessionRef.current = null;
-      setIsSessionConnected(false);
     }
 
     const session = new GeminiLiveSession(
@@ -143,22 +153,20 @@ export default function Home() {
       },
       {
         onText: (text: string) => {
+          setConnectionStatus("connected");
           // 수신된 텍스트가 누적된 전체 텍스트인지, 아니면 추가된 청크인지 확인
           if (text.startsWith(pendingTextRef.current)) {
-            // 누적된 경우: 새로운 부분(Delta)만 추출하여 UI 업데이트
             const newDelta = text.substring(pendingTextRef.current.length);
             if (newDelta) {
               setAssistantMessage((prev) => prev + newDelta);
               pendingTextRef.current = text;
             }
           } else {
-            // 새로운 메시지이거나 형식이 다른 경우: 그대로 추가
             pendingTextRef.current += text;
             setAssistantMessage((prev) => prev + text);
           }
         },
         onAudio: (buffer: ArrayBuffer) => {
-          // Gemini TTS 오디오 수신 → 립싱크 재생
           if (!viewer.model) return;
           const currentText = pendingTextRef.current;
           const aiTalks = textsToScreenplay([currentText || "[neutral]"], voiceName);
@@ -166,55 +174,68 @@ export default function Home() {
             aiTalks[0] ?? { expression: "neutral", talk: { style: "talk", voiceId: voiceName, message: "" } },
             viewer,
             buffer,
-            undefined, // UI 업데이트는 onText에서 처리하므로 여기서 생략
-            () => {
-              setChatProcessing(false);
-            }
+            undefined,
+            () => setChatProcessing(false)
           );
         },
         onTranscript: (text: string) => {
-          // 사용자 발화 인식 결과 채팅 로그에 추가
           if (text.trim()) {
-            setChatLog((prev) => [
-              ...prev,
-              { role: "user" as const, content: text },
-            ]);
+            setChatLog((prev) => [...prev, { role: "user" as const, content: text }]);
             setChatProcessing(true);
             setAssistantMessage("");
           }
         },
         onTurnComplete: () => {
-          // AI 응답 턴 완료 처리
           if (pendingTextRef.current) {
-            const finalText = pendingTextRef.current;
-            setChatLog((prev) => [
-              ...prev,
-              { role: "assistant" as const, content: finalText },
-            ]);
+            setChatLog((prev) => [...prev, { role: "assistant" as const, content: pendingTextRef.current }]);
             pendingTextRef.current = "";
           }
           setChatProcessing(false);
         },
         onError: (error: Error) => {
           console.error("[Home] Gemini Live 오류:", error);
+          setConnectionStatus("error");
           setChatProcessing(false);
           setIsSessionConnected(false);
+          triggerAutoReconnect();
         },
         onDisconnected: () => {
+          console.warn("[Home] Gemini Live 세션 연결 종료됨");
+          setConnectionStatus("disconnected");
           setIsSessionConnected(false);
           setChatProcessing(false);
-          console.log("[Home] Gemini Live 세션 종료됨");
+          triggerAutoReconnect();
         },
       }
     );
+
+    const triggerAutoReconnect = () => {
+      if (reconnectCountRef.current < 5) { // 최대 5회 재시도
+        const delay = Math.pow(2, reconnectCountRef.current) * 1000; // 지수 백오프
+        reconnectCountRef.current += 1;
+        console.log(`[Home] ${delay}ms 후 재연결을 시도합니다...`);
+        reconnectTimerRef.current = setTimeout(() => {
+          startLiveSession(true);
+        }, delay);
+      } else {
+        console.error("[Home] 최대 재연결 시도 횟수를 초과했습니다.");
+        setAssistantMessage("연결이 반복적으로 끊겨 자동 재연결을 중단했습니다. 네트워크 상태를 확인해주세요.");
+      }
+    };
 
     try {
       await session.connect();
       liveSessionRef.current = session;
       setIsSessionConnected(true);
+      setConnectionStatus("connected");
+      reconnectCountRef.current = 0; // 연결 성공 시 초기화
     } catch (error) {
       console.error("[Home] 세션 연결 실패:", error);
-      setAssistantMessage("Gemini Live API 연결에 실패했습니다. API 키를 확인해주세요.");
+      if (!isAutoReconnect) {
+        setAssistantMessage("Gemini Live API 연결에 실패했습니다. API 키와 모델 설정을 확인해주세요.");
+      }
+      setConnectionStatus("error");
+      triggerAutoReconnect();
     }
   }, [geminiApiKey, chatModel, systemPrompt, voiceName, viewer, t]);
 
@@ -315,7 +336,12 @@ export default function Home() {
         chatLog={chatLog}
         voiceName={voiceName}
         chatModel={chatModel}
-        assistantMessage={assistantMessage}
+        assistantMessage={
+          assistantMessage ||
+          (connectionStatus === "connecting" ? "Gemini Live API에 연결 중입니다..." :
+            connectionStatus === "reconnecting" ? `연속 연결이 끊어져 재연결 시도 중입니다... (재시도: ${reconnectCountRef.current}/5)` :
+              connectionStatus === "error" ? "연결에 오류가 발생했습니다." : "")
+        }
         onChangeGeminiKey={setGeminiApiKey}
         onChangeSystemPrompt={setSystemPrompt}
         onChangeChatLog={handleChangeChatLog}
