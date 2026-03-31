@@ -30,6 +30,8 @@ export interface GeminiLiveConfig {
     apiVersion?: string;
     /** TTS 응답 보이스 이름 (예: "Aoede", "Charon", "Fenrir", "Kore", "Puck") */
     voiceName?: string;
+    /** 비디오 입력 활성화 여부. true일 때만 mediaResolution 설정을 포함합니다. */
+    enableVideo?: boolean;
 }
 
 /**
@@ -46,6 +48,8 @@ export class GeminiLiveSession {
     private config: GeminiLiveConfig;
     private callbacks: GeminiLiveCallbacks;
     private isConnected: boolean = false;
+    /** disconnect()가 명시적으로 호출된 경우 true. onclose에서 재연결 방지에 사용합니다. */
+    private intentionalClose: boolean = false;
 
     public constructor(config: GeminiLiveConfig, callbacks: GeminiLiveCallbacks) {
         this.config = config;
@@ -109,7 +113,9 @@ export class GeminiLiveSession {
                     // 공식 문서: 한 세션에 TEXT와 AUDIO 동시 설정 불가 → config error 발생
                     // 참고: https://ai.google.dev/gemini-api/docs/live-guide#response-modalities
                     responseModalities: [Modality.AUDIO],
-                    mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW,
+                    // mediaResolution은 비디오 입력이 활성화된 경우에만 포함합니다.
+                    // 오디오 전용 모델에 이 설정을 보내면 서버가 1011로 연결을 끊습니다.
+                    ...(this.config.enableVideo ? { mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW } : {}),
                     // 오디오 출력에 대한 텍스트 전사 활성화 (AI 응답 텍스트를 텍스트로도 수신)
                     outputAudioTranscription: {},
                     // 사용자 입력 오디오에 대한 텍스트 전사 활성화
@@ -142,6 +148,11 @@ export class GeminiLiveSession {
                     },
                     onclose: (evt: CloseEvent) => {
                         this.isConnected = false;
+                        if (this.intentionalClose) {
+                            // disconnect()로 인한 정상 종료 — 재연결 불필요
+                            this.intentionalClose = false;
+                            return;
+                        }
                         console.warn(`[GeminiLive] WebSocket 연결 종료 (코드: ${evt.code}, 사유: ${evt.reason})`);
                         this.callbacks.onDisconnected?.();
                     },
@@ -330,11 +341,13 @@ export class GeminiLiveSession {
      */
     public disconnect(): void {
         try {
+            // intentionalClose 플래그로 onclose에서 재연결을 막습니다.
+            this.intentionalClose = true;
+            this.isConnected = false;
             if (this.session) {
                 this.session.close();
                 this.session = null;
             }
-            this.isConnected = false;
         } catch (error) {
             console.error("[GeminiLive] 세션 종료 오류:", error);
         }

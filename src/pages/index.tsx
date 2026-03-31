@@ -44,6 +44,7 @@ export default function Home() {
   // ── Gemini Live 세션 ──
   const liveSessionRef = useRef<GeminiLiveSession | null>(null);
   const [isSessionConnected, setIsSessionConnected] = useState(false);
+  const isCameraActiveRef = useRef(false);
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting" | "reconnecting" | "error">("disconnected");
   const reconnectCountRef = useRef(0);
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -139,6 +140,7 @@ export default function Home() {
         model: chatModel,
         systemPrompt: systemPrompt,
         voiceName: voiceName,
+        enableVideo: isCameraActiveRef.current,
       },
       {
         onText: (text: string) => {
@@ -270,6 +272,15 @@ export default function Home() {
   );
 
   /**
+   * 카메라 ON/OFF 토글 시 호출됩니다.
+   * enableVideo 설정이 바뀌므로 세션을 재시작합니다.
+   */
+  const handleCameraToggle = useCallback((active: boolean) => {
+    isCameraActiveRef.current = active;
+    startLiveSession();
+  }, [startLiveSession]);
+
+  /**
    * 텍스트 입력으로 메시지 전송 처리.
    * Gemini Live 세션이 있으면 세션을 통해, 없으면 에러 메시지를 표시합니다.
    */
@@ -326,7 +337,8 @@ export default function Home() {
         isChatProcessing={chatProcessing}
         onChatProcessStart={handleSendChat}
         geminiApiKey={geminiApiKey}
-        liveSession={liveSessionRef.current}
+        liveSessionRef={liveSessionRef}
+        onCameraToggle={handleCameraToggle}
       />
       <Menu
         geminiApiKey={geminiApiKey}

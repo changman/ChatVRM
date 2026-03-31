@@ -1,6 +1,6 @@
 import { MessageInput } from "@/components/messageInput";
 import { CameraPiP } from "@/components/cameraPiP";
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { GeminiLiveSession } from "@/features/chat/geminiLiveChat";
 import { MicrophoneCapture } from "@/utils/audioUtils";
 import { CameraCapture } from "@/utils/videoUtils";
@@ -8,10 +8,9 @@ import { CameraCapture } from "@/utils/videoUtils";
 type Props = {
   isChatProcessing: boolean;
   onChatProcessStart: (text: string) => void;
-  geminiApiKey: string;
-  onAudioReceived?: (buffer: ArrayBuffer) => void;
-  onTranscript?: (text: string) => void;
-  liveSession?: GeminiLiveSession | null;
+  geminiApiKey?: string;
+  liveSessionRef?: React.MutableRefObject<GeminiLiveSession | null>;
+  onCameraToggle?: (active: boolean) => void;
 };
 
 /**
@@ -22,10 +21,8 @@ type Props = {
 export const MessageInputContainer = ({
   isChatProcessing,
   onChatProcessStart,
-  geminiApiKey,
-  onAudioReceived,
-  onTranscript,
-  liveSession,
+  liveSessionRef,
+  onCameraToggle,
 }: Props) => {
   const [userMessage, setUserMessage] = useState("");
   const [isMicActive, setIsMicActive] = useState(false);
@@ -40,18 +37,17 @@ export const MessageInputContainer = ({
    */
   const handleClickMicButton = useCallback(async () => {
     if (isMicActive) {
-      // 마이크 중지
       micCaptureRef.current?.stop();
       micCaptureRef.current = null;
       setIsMicActive(false);
       return;
     }
 
-    // 마이크 시작
     try {
       const capture = new MicrophoneCapture((pcm: ArrayBuffer) => {
-        if (liveSession?.connected) {
-          liveSession.sendAudio(pcm);
+        const session = liveSessionRef?.current;
+        if (session?.connected) {
+          session.sendAudio(pcm);
         }
       });
       await capture.start();
@@ -60,7 +56,7 @@ export const MessageInputContainer = ({
     } catch (error) {
       console.error("[MessageInputContainer] 마이크 시작 실패:", error);
     }
-  }, [isMicActive, liveSession]);
+  }, [isMicActive, liveSessionRef]);
 
   /**
    * 카메라 버튼 클릭 시 카메라 캡처를 시작/중지합니다.
@@ -72,31 +68,32 @@ export const MessageInputContainer = ({
       cameraCaptureRef.current = null;
       setCameraStream(null);
       setIsCameraActive(false);
+      onCameraToggle?.(false);
       return;
     }
 
     try {
       const capture = new CameraCapture((base64: string, mimeType: string) => {
-        if (liveSession?.connected) {
-          liveSession.sendVideo(base64, mimeType);
+        const session = liveSessionRef?.current;
+        if (session?.connected) {
+          session.sendVideo(base64, mimeType);
         }
       });
       const stream = await capture.start();
       cameraCaptureRef.current = capture;
       setCameraStream(stream);
       setIsCameraActive(true);
+      onCameraToggle?.(true);
     } catch (error) {
       console.error("[MessageInputContainer] 카메라 시작 실패:", error);
     }
-  }, [isCameraActive, liveSession]);
+  }, [isCameraActive, liveSessionRef, onCameraToggle]);
 
   /**
    * 텍스트 전송 버튼 클릭 시 처리합니다.
-   * Gemini Live API 세션이 있으면 세션을 통해, 없으면 상위 핸들러로 전송합니다.
    */
   const handleClickSendButton = useCallback(() => {
     if (!userMessage.trim()) return;
-    // index.tsx의 handleSendChat에서 세션 체크 및 전송을 통합 처리하도록 변경
     onChatProcessStart(userMessage);
   }, [onChatProcessStart, userMessage]);
 
