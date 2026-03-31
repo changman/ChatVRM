@@ -64,19 +64,7 @@ export default function Home() {
       const RECOMMENDED_MODEL = "gemini-2.5-flash-native-audio-preview-12-2025";
       const savedModel = params.chatModel ?? RECOMMENDED_MODEL;
 
-      // Live API (bidiGenerateContent WebSocket) 지원 여부 확인:
-      // 유효한 모델 패턴:
-      //   - 'native-audio'가 포함되어야 함 (예: gemini-2.5-flash-native-audio-preview-12-2025)
-      //   - 예외: gemini-2.0-flash-exp 는 bidi 지원
-      // 무효한 모델 패턴:
-      //   - 'gemini-live-*' 형태의 구형 모델명 (API v1beta 미지원)
-      //   - gemini-2.5-flash, gemini-2.0-flash 등 일반 텍스트 모델
-      const isOldLiveFormat = savedModel.startsWith("gemini-live-");
-      const isValidLiveModel =
-        !isOldLiveFormat &&
-        (savedModel.includes("native-audio") || savedModel === "gemini-2.0-flash-exp");
-
-      if (!isValidLiveModel) {
+      if (!GeminiLiveSession.isLiveModel(savedModel)) {
         console.warn(
           `[Home] Live API 미지원 또는 구형 모델(${savedModel})을 감지하여 권장 모델로 자동 교정합니다: ${RECOMMENDED_MODEL}`
         );

@@ -1,4 +1,4 @@
-import { GoogleGenAI, LiveServerMessage, Modality, Session } from "@google/genai";
+import { GoogleGenAI, LiveServerMessage, MediaResolution, Modality, Session } from "@google/genai";
 
 /**
  * Gemini Live API 세션 이벤트 콜백 인터페이스.
@@ -38,6 +38,9 @@ export interface GeminiLiveConfig {
  * LLM(대화 생성), TTS(텍스트→음성)를 통합 처리합니다.
  */
 export class GeminiLiveSession {
+    /** 스트리밍 메시지 로그 활성화 여부 (기본값: 비활성) */
+    public static debugLog: boolean = false;
+
     private session: Session | null = null;
     private client: GoogleGenAI;
     private config: GeminiLiveConfig;
@@ -56,31 +59,39 @@ export class GeminiLiveSession {
     }
 
     /**
-     * 사용 가능한 모델 목록을 가져옵니다.
+     * 모델 이름으로 Gemini Live API(bidiGenerateContent) 지원 여부를 판별합니다.
+     * SDK가 supportedGenerationMethods를 노출하지 않으므로 이름 패턴으로 식별합니다.
      */
-    public async getAvailableModels(): Promise<string[]> {
-        try {
-            // SDK v1.42.0+ 에서는 ai.models.list()가 Pager를 반환합니다.
-            const pager = await this.client.models.list();
-            const models: string[] = [];
-            console.log("[GeminiLive] 모델 목록 상세 조회 시작...");
-            for await (const model of pager) {
-                if (model.name) {
-                    const cleanName = model.name.replace("models/", "");
-                    models.push(cleanName);
-                    // 특정 라이브 모델에 대해 상세 정보 로깅
-                    const anyModel = model as any;
-                    if (cleanName.includes("live") || cleanName.includes("flash")) {
-                        const actions = anyModel.supportedActions || anyModel.supportedGenerationMethods || [];
-                        console.log(`[GeminiLive] - 모델: ${cleanName}, 버전: ${model.version}, 지원 액션: ${JSON.stringify(actions)}`);
-                    }
-                }
+    public static isLiveModel(name: string): boolean {
+        return (
+            name.includes("native-audio") ||
+            name.includes("-live-") ||
+            name.endsWith("-live") ||
+            name === "gemini-2.0-flash-exp"
+        );
+    }
+
+    /**
+     * Gemini Live API(bidiGenerateContent WebSocket)를 지원하는 모델 목록을 서버에서 가져옵니다.
+     * API 키만으로 호출 가능한 static 메서드입니다.
+     * @param apiKey - Gemini API 키
+     * @returns bidiGenerateContent를 지원하는 모델 이름 목록
+     */
+    public static async getLiveModels(apiKey: string): Promise<string[]> {
+        const client = new GoogleGenAI({
+            apiKey,
+            httpOptions: { apiVersion: "v1beta" },
+        });
+        const pager = await client.models.list();
+        const liveModels: string[] = [];
+        for await (const model of pager) {
+            if (!model.name) continue;
+            const name = model.name.replace("models/", "");
+            if (GeminiLiveSession.isLiveModel(name)) {
+                liveModels.push(name);
             }
-            return models;
-        } catch (error) {
-            console.error("[GeminiLive] 모델 목록 가져오기 실패:", error);
-            return [];
         }
+        return liveModels;
     }
 
     /**
@@ -89,18 +100,8 @@ export class GeminiLiveSession {
      */
     public async connect(): Promise<void> {
         try {
-            // 디버깅: 사용 가능한 모델 목록 확인
-            try {
-                const models = await this.getAvailableModels();
-                console.log("[GeminiLive] 현재 API 키로 사용 가능한 모델들:", models);
-            } catch (e) {
-                console.warn("[GeminiLive] 모델 목록 fetch 실패 (무시하고 진행)");
-            }
-
-            // 공식 문서 JavaScript 예제의 정확한 모델명을 기본값으로 사용합니다.
-            // 참고: https://ai.google.dev/gemini-api/docs/live-guide
             const modelName = this.config.model ?? "gemini-2.5-flash-native-audio-preview-12-2025";
-            console.log(`[GeminiLive] 세션 연결 시도 중... (모델: ${modelName})`);
+            if (GeminiLiveSession.debugLog) console.log(`[GeminiLive] 세션 연결 시도 중... (모델: ${modelName})`);
 
             this.session = await this.client.live.connect({
                 model: modelName,
@@ -108,6 +109,7 @@ export class GeminiLiveSession {
                     // 공식 문서: 한 세션에 TEXT와 AUDIO 동시 설정 불가 → config error 발생
                     // 참고: https://ai.google.dev/gemini-api/docs/live-guide#response-modalities
                     responseModalities: [Modality.AUDIO],
+                    mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW,
                     // 오디오 출력에 대한 텍스트 전사 활성화 (AI 응답 텍스트를 텍스트로도 수신)
                     outputAudioTranscription: {},
                     // 사용자 입력 오디오에 대한 텍스트 전사 활성화
@@ -126,11 +128,12 @@ export class GeminiLiveSession {
                 callbacks: {
                     onopen: () => {
                         this.isConnected = true;
-                        console.log("[GeminiLive] WebSocket 연결 성공");
+                        if (GeminiLiveSession.debugLog) console.log("[GeminiLive] WebSocket 연결 성공");
                     },
                     onmessage: (message: LiveServerMessage) => {
-                        // 수신된 전체 메시지 구조 로깅 (디버깅용)
-                        console.log("[GeminiLive] 메시지 수신:", JSON.stringify(message, null, 2));
+                        if (GeminiLiveSession.debugLog) {
+                            console.log("[GeminiLive] 메시지 수신:", JSON.stringify(message, null, 2));
+                        }
                         this.handleMessage(message);
                     },
                     onerror: (err: ErrorEvent) => {
@@ -202,13 +205,13 @@ export class GeminiLiveSession {
                         if (part.text) {
                             const filtered = this.filterThinkingText(part.text);
                             if (filtered) {
-                                console.log("[GeminiLive] modelTurn 텍스트:", filtered);
+                                if (GeminiLiveSession.debugLog) console.log("[GeminiLive] modelTurn 텍스트:", filtered);
                                 currentText = filtered;
                             }
                         }
                         // 오디오 응답 (inlineData: Base64 raw PCM)
                         if (part.inlineData?.data) {
-                            console.log(`[GeminiLive] 오디오 데이터 수신 (${part.inlineData.data.length} chars base64)`);
+                            if (GeminiLiveSession.debugLog) console.log(`[GeminiLive] 오디오 데이터 수신 (${part.inlineData.data.length} chars base64)`);
                             const buffer = this.base64ToArrayBuffer(part.inlineData.data);
                             this.callbacks.onAudio?.(buffer);
                         }
@@ -221,7 +224,7 @@ export class GeminiLiveSession {
             if (outputTranscript) {
                 const filtered = this.filterThinkingText(outputTranscript);
                 if (filtered) {
-                    console.log("[GeminiLive] outputTranscription 텍스트:", filtered);
+                    if (GeminiLiveSession.debugLog) console.log("[GeminiLive] outputTranscription 텍스트:", filtered);
                     currentText = filtered; // outputTranscription을 우선시함
                 }
             }
@@ -234,24 +237,24 @@ export class GeminiLiveSession {
             // 사용자 입력 오디오의 텍스트 전사 (inputAudioTranscription 활성화 시 수신)
             const inputTranscript = serverContent?.inputTranscription?.text;
             if (inputTranscript) {
-                console.log("[GeminiLive] 사용자 발화 인식(STT):", inputTranscript);
+                if (GeminiLiveSession.debugLog) console.log("[GeminiLive] 사용자 발화 인식(STT):", inputTranscript);
                 this.callbacks.onTranscript?.(inputTranscript);
             }
 
             // 턴 완료
             if (serverContent?.turnComplete) {
-                console.log("[GeminiLive] 응답 턴 완료 (turnComplete)");
+                if (GeminiLiveSession.debugLog) console.log("[GeminiLive] 응답 턴 완료 (turnComplete)");
                 this.callbacks.onTurnComplete?.();
             }
 
             // 인터럽트 발생 시 (사용자가 말을 가로챘을 때)
             if (message.serverContent?.interrupted) {
-                console.log("[GeminiLive] AI 응답 인터럽트 발생");
+                if (GeminiLiveSession.debugLog) console.log("[GeminiLive] AI 응답 인터럽트 발생");
             }
 
             // 셋업 완료
             if (message.setupComplete) {
-                console.log("[GeminiLive] 세션 설정 완료 (setupComplete)");
+                if (GeminiLiveSession.debugLog) console.log("[GeminiLive] 세션 설정 완료 (setupComplete)");
             }
         } catch (error) {
             console.error("[GeminiLive] 메시지 처리 중 예외 발생:", error);
@@ -277,6 +280,27 @@ export class GeminiLiveSession {
             });
         } catch (error) {
             console.error("[GeminiLive] 오디오 전송 오류:", error);
+        }
+    }
+
+    /**
+     * 비디오 프레임(JPEG/PNG base64)을 Gemini Live API 세션으로 전송합니다.
+     * @param base64 - Base64 인코딩된 이미지 데이터
+     * @param mimeType - 이미지 MIME 타입 (예: "image/jpeg")
+     */
+    public sendVideo(base64: string, mimeType: string): void {
+        if (!this.session || !this.isConnected) {
+            return;
+        }
+        try {
+            this.session.sendRealtimeInput({
+                video: {
+                    data: base64,
+                    mimeType,
+                },
+            });
+        } catch (error) {
+            console.error("[GeminiLive] 비디오 프레임 전송 오류:", error);
         }
     }
 
