@@ -48,6 +48,7 @@ export default function Home() {
   const reconnectCountRef = useRef(0);
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingTextRef = useRef<string>("");
+  const pendingUserTranscriptRef = useRef<boolean>(false);
 
   // ── localStorage 파라미터 로드 ──
   useEffect(() => {
@@ -180,12 +181,21 @@ export default function Home() {
         },
         onTranscript: (text: string) => {
           if (text.trim()) {
-            setChatLog((prev) => [...prev, { role: "user" as const, content: text }]);
+            setChatLog((prev) => {
+              if (pendingUserTranscriptRef.current && prev.length > 0 && prev[prev.length - 1].role === "user") {
+                // 발화 중 — 마지막 user 메시지를 교체 (새 셀 생성 방지)
+                return [...prev.slice(0, -1), { role: "user" as const, content: text }];
+              }
+              // 첫 번째 전사 — 새 user 메시지 추가
+              pendingUserTranscriptRef.current = true;
+              return [...prev, { role: "user" as const, content: text }];
+            });
             setChatProcessing(true);
             setAssistantMessage("");
           }
         },
         onTurnComplete: () => {
+          pendingUserTranscriptRef.current = false;
           if (pendingTextRef.current) {
             setChatLog((prev) => [...prev, { role: "assistant" as const, content: pendingTextRef.current }]);
             pendingTextRef.current = "";
