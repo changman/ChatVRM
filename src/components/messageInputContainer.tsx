@@ -10,6 +10,7 @@ type Props = {
   onChatProcessStart: (text: string) => void;
   geminiApiKey?: string;
   liveSessionRef?: React.MutableRefObject<GeminiLiveSession | null>;
+  isSpeakingRef?: React.MutableRefObject<boolean>;
   onCameraToggle?: (active: boolean) => void;
 };
 
@@ -22,6 +23,7 @@ export const MessageInputContainer = ({
   isChatProcessing,
   onChatProcessStart,
   liveSessionRef,
+  isSpeakingRef,
   onCameraToggle,
 }: Props) => {
   const [userMessage, setUserMessage] = useState("");
@@ -45,6 +47,8 @@ export const MessageInputContainer = ({
 
     try {
       const capture = new MicrophoneCapture((pcm: ArrayBuffer) => {
+        // AI 재생 중에는 마이크 전송 차단 (echo → VAD 오탐 방지)
+        if (isSpeakingRef?.current) return;
         const session = liveSessionRef?.current;
         if (session?.connected) {
           session.sendAudio(pcm);

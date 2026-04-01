@@ -6,6 +6,7 @@ import { Link } from "./link";
 import { useTranslation } from 'next-i18next';
 import { SettingsCard } from "./settingsCard";
 import { GeminiLiveSession } from "@/features/chat/geminiLiveChat";
+import { DebugFlags } from "@/utils/debugFlags";
 
 /**
  * Gemini TTS 보이스 옵션 목록
@@ -67,7 +68,8 @@ export const Settings = ({
   const [activeTab, setActiveTab] = useState<'general' | 'character' | 'voice'>('general');
   const [liveModels, setLiveModels] = useState<string[]>(FALLBACK_MODELS);
   const [modelsLoading, setModelsLoading] = useState(false);
-  const [debugLog, setDebugLog] = useState(GeminiLiveSession.debugLog);
+  const [debugLog, setDebugLog] = useState(DebugFlags.debugLog);
+  const [timingLog, setTimingLog] = useState(DebugFlags.timingLog);
 
   // API 키가 있으면 서버에서 Live 지원 모델 목록을 가져옵니다.
   useEffect(() => {
@@ -208,7 +210,7 @@ export const Settings = ({
                       <button
                         onClick={() => {
                           const next = !debugLog;
-                          GeminiLiveSession.debugLog = next;
+                          DebugFlags.debugLog = next;
                           setDebugLog(next);
                         }}
                         style={{
@@ -233,6 +235,45 @@ export const Settings = ({
                           backgroundColor: 'white',
                           boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                           transform: debugLog ? 'translateX(22px)' : 'translateX(3px)',
+                          transition: 'transform 0.2s',
+                        }} />
+                      </button>
+                    </div>
+
+                    {/* 타이밍 로그 토글 */}
+                    <div className="flex items-center justify-between pt-6">
+                      <div>
+                        <div className="font-bold text-sm text-gray-700">지연 타이밍 로그</div>
+                        <div className="text-xs text-gray-400 mt-2">활성화 시 ⏱️ 1~6 단계별 처리 시간을 콘솔에 출력합니다. 응답 지연 원인 분석에 사용합니다.</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const next = !timingLog;
+                          DebugFlags.timingLog = next;
+                          setTimingLog(next);
+                        }}
+                        style={{
+                          position: 'relative',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          width: '44px',
+                          height: '24px',
+                          borderRadius: '9999px',
+                          backgroundColor: timingLog ? '#6366f1' : '#d1d5db',
+                          border: 'none',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span style={{
+                          display: 'inline-block',
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '9999px',
+                          backgroundColor: 'white',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                          transform: timingLog ? 'translateX(22px)' : 'translateX(3px)',
                           transition: 'transform 0.2s',
                         }} />
                       </button>

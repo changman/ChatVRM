@@ -1,11 +1,11 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { DebugFlags } from "@/utils/debugFlags";
 import dynamic from 'next/dynamic';
 import VrmViewer from "@/components/vrmViewer";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import {
   Message,
   textsToScreenplay,
-  Screenplay,
 } from "@/features/messages/messages";
 import { speakCharacter } from "@/features/messages/speakCharacter";
 import { SYSTEM_PROMPT } from "@/features/constants/systemPromptConstants";
@@ -50,6 +50,9 @@ export default function Home() {
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingTextRef = useRef<string>("");
   const pendingUserTranscriptRef = useRef<boolean>(false);
+  const transcriptDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const isSpeakingRef = useRef(false);
+  const sessionResumptionHandleRef = useRef<string | undefined>(undefined);
 
   // ── localStorage 파라미터 로드 ──
   useEffect(() => {
@@ -113,6 +116,10 @@ export default function Home() {
    * 지수 백오프 기반의 자동 재연결 기능을 포함합니다.
    */
   const startLiveSession = useCallback(async (isAutoReconnect = false) => {
+    // ── 진단: 호출 경로 및 시점 추적 ──
+    console.log(`[Home][진단] startLiveSession 호출 (isAutoReconnect=${isAutoReconnect}, 기존세션=${!!liveSessionRef.current})`);
+    console.trace("[Home][진단] 호출 스택");
+
     if (!geminiApiKey) {
       setAssistantMessage(t('errors.noApiKey'));
       setConnectionStatus("disconnected");
@@ -141,6 +148,7 @@ export default function Home() {
         systemPrompt: systemPrompt,
         voiceName: voiceName,
         enableVideo: isCameraActiveRef.current,
+        resumptionHandle: sessionResumptionHandleRef.current,
       },
       {
         onText: (text: string) => {
@@ -159,6 +167,9 @@ export default function Home() {
         },
         onAudio: (buffer: ArrayBuffer) => {
           if (!viewer.model) return;
+          if (DebugFlags.timingLog) console.log(`[⏱️ 4b-AUDIO-CB] t=${performance.now().toFixed(0)}ms → speakCharacter 큐 진입`);
+          // AI 재생 중 마이크 전송 차단 (echo → VAD 오탐 방지)
+          isSpeakingRef.current = true;
           const currentText = pendingTextRef.current;
           const aiTalks = textsToScreenplay([currentText || "[neutral]"], voiceName);
           speakCharacter(
@@ -170,22 +181,35 @@ export default function Home() {
           );
         },
         onTranscript: (text: string) => {
-          if (text.trim()) {
-            setChatLog((prev) => {
-              if (pendingUserTranscriptRef.current && prev.length > 0 && prev[prev.length - 1].role === "user") {
-                // 발화 중 — 마지막 user 메시지를 교체 (새 셀 생성 방지)
-                return [...prev.slice(0, -1), { role: "user" as const, content: text }];
-              }
-              // 첫 번째 전사 — 새 user 메시지 추가
-              pendingUserTranscriptRef.current = true;
-              return [...prev, { role: "user" as const, content: text }];
-            });
+          if (!text.trim()) return;
+
+          // 사용자가 말하기 시작 → AI 재생 차단 해제
+          isSpeakingRef.current = false;
+
+          // UI 업데이트는 즉시 수행 (채팅로그 실시간 반영)
+          setChatLog((prev) => {
+            if (pendingUserTranscriptRef.current && prev.length > 0 && prev[prev.length - 1].role === "user") {
+              return [...prev.slice(0, -1), { role: "user" as const, content: text }];
+            }
+            pendingUserTranscriptRef.current = true;
+            return [...prev, { role: "user" as const, content: text }];
+          });
+
+          // setChatProcessing/setAssistantMessage는 150ms debounce
+          // 음절마다 호출 시 리렌더링 폭주 방지
+          if (transcriptDebounceRef.current) {
+            clearTimeout(transcriptDebounceRef.current);
+          }
+          transcriptDebounceRef.current = setTimeout(() => {
             setChatProcessing(true);
             setAssistantMessage("");
-          }
+            transcriptDebounceRef.current = null;
+          }, 150);
         },
         onTurnComplete: () => {
           pendingUserTranscriptRef.current = false;
+          // AI 턴 완료 → 마이크 차단 해제 (안전 리셋)
+          isSpeakingRef.current = false;
           if (pendingTextRef.current) {
             setChatLog((prev) => [...prev, { role: "assistant" as const, content: pendingTextRef.current }]);
             pendingTextRef.current = "";
@@ -205,6 +229,12 @@ export default function Home() {
           setIsSessionConnected(false);
           setChatProcessing(false);
           triggerAutoReconnect();
+        },
+        onSessionResumptionUpdate: (handle: string, resumable: boolean) => {
+          // resumable=true인 핸들만 저장 — 재연결 시 대화 컨텍스트 복원에 사용
+          if (resumable) {
+            sessionResumptionHandleRef.current = handle;
+          }
         },
       }
     );
@@ -253,9 +283,10 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geminiApiKey]);
 
-  // 모델/음성/시스템프롬프트 변경 시 세션 재시작
+  // 모델/음성/시스템프롬프트 변경 시 세션 재시작 (설정 변경이므로 이전 컨텍스트 초기화)
   useEffect(() => {
     if (geminiApiKey && isSessionConnected) {
+      sessionResumptionHandleRef.current = undefined;
       startLiveSession();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -338,6 +369,7 @@ export default function Home() {
         onChatProcessStart={handleSendChat}
         geminiApiKey={geminiApiKey}
         liveSessionRef={liveSessionRef}
+        isSpeakingRef={isSpeakingRef}
         onCameraToggle={handleCameraToggle}
       />
       <Menu

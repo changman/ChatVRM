@@ -1,4 +1,5 @@
 import { GoogleGenAI, LiveServerMessage, MediaResolution, Modality, Session } from "@google/genai";
+import { DebugFlags } from "@/utils/debugFlags";
 
 /**
  * Gemini Live API 세션 이벤트 콜백 인터페이스.
@@ -17,6 +18,11 @@ export interface GeminiLiveCallbacks {
     onError?: (error: Error) => void;
     /** 세션 연결 종료 시 호출 */
     onDisconnected?: () => void;
+    /**
+     * 세션 복구 핸들 업데이트 시 호출.
+     * resumable=true인 핸들을 저장해두면 재연결 시 대화 컨텍스트를 복원할 수 있습니다.
+     */
+    onSessionResumptionUpdate?: (handle: string, resumable: boolean) => void;
 }
 
 /**
@@ -32,6 +38,12 @@ export interface GeminiLiveConfig {
     voiceName?: string;
     /** 비디오 입력 활성화 여부. true일 때만 mediaResolution 설정을 포함합니다. */
     enableVideo?: boolean;
+    /**
+     * 이전 세션의 복구 핸들.
+     * 재연결 시 전달하면 서버가 대화 컨텍스트를 복원합니다.
+     * onSessionResumptionUpdate 콜백으로 수신한 핸들을 저장해서 사용하세요.
+     */
+    resumptionHandle?: string;
 }
 
 /**
@@ -40,8 +52,6 @@ export interface GeminiLiveConfig {
  * LLM(대화 생성), TTS(텍스트→음성)를 통합 처리합니다.
  */
 export class GeminiLiveSession {
-    /** 스트리밍 메시지 로그 활성화 여부 (기본값: 비활성) */
-    public static debugLog: boolean = false;
 
     private session: Session | null = null;
     private client: GoogleGenAI;
@@ -105,7 +115,7 @@ export class GeminiLiveSession {
     public async connect(): Promise<void> {
         try {
             const modelName = this.config.model ?? "gemini-2.5-flash-native-audio-preview-12-2025";
-            if (GeminiLiveSession.debugLog) console.log(`[GeminiLive] 세션 연결 시도 중... (모델: ${modelName})`);
+            if (DebugFlags.debugLog) console.log(`[GeminiLive] 세션 연결 시도 중... (모델: ${modelName})`);
 
             this.session = await this.client.live.connect({
                 model: modelName,
@@ -120,6 +130,10 @@ export class GeminiLiveSession {
                     outputAudioTranscription: {},
                     // 사용자 입력 오디오에 대한 텍스트 전사 활성화
                     inputAudioTranscription: {},
+                    // 이전 세션 핸들이 있으면 대화 컨텍스트 복원 (없으면 필드 자체를 생략)
+                    ...(this.config.resumptionHandle
+                        ? { sessionResumption: { handle: this.config.resumptionHandle } }
+                        : {}),
                     systemInstruction: this.config.systemPrompt
                         ? { parts: [{ text: this.config.systemPrompt }] }
                         : undefined,
@@ -134,10 +148,10 @@ export class GeminiLiveSession {
                 callbacks: {
                     onopen: () => {
                         this.isConnected = true;
-                        if (GeminiLiveSession.debugLog) console.log("[GeminiLive] WebSocket 연결 성공");
+                        if (DebugFlags.debugLog) console.log("[GeminiLive] WebSocket 연결 성공");
                     },
                     onmessage: (message: LiveServerMessage) => {
-                        if (GeminiLiveSession.debugLog) {
+                        if (DebugFlags.debugLog) {
                             console.log("[GeminiLive] 메시지 수신:", JSON.stringify(message, null, 2));
                         }
                         this.handleMessage(message);
@@ -216,13 +230,14 @@ export class GeminiLiveSession {
                         if (part.text) {
                             const filtered = this.filterThinkingText(part.text);
                             if (filtered) {
-                                if (GeminiLiveSession.debugLog) console.log("[GeminiLive] modelTurn 텍스트:", filtered);
+                                if (DebugFlags.debugLog) console.log("[GeminiLive] modelTurn 텍스트:", filtered);
                                 currentText = filtered;
                             }
                         }
                         // 오디오 응답 (inlineData: Base64 raw PCM)
                         if (part.inlineData?.data) {
-                            if (GeminiLiveSession.debugLog) console.log(`[GeminiLive] 오디오 데이터 수신 (${part.inlineData.data.length} chars base64)`);
+                            if (DebugFlags.debugLog) console.log(`[GeminiLive] 오디오 데이터 수신 (${part.inlineData.data.length} chars base64)`);
+                            if (DebugFlags.timingLog) console.log(`[⏱️ 4-AUDIO-RECV] t=${performance.now().toFixed(0)}ms size=${part.inlineData.data.length}chars`);
                             const buffer = this.base64ToArrayBuffer(part.inlineData.data);
                             this.callbacks.onAudio?.(buffer);
                         }
@@ -235,7 +250,7 @@ export class GeminiLiveSession {
             if (outputTranscript) {
                 const filtered = this.filterThinkingText(outputTranscript);
                 if (filtered) {
-                    if (GeminiLiveSession.debugLog) console.log("[GeminiLive] outputTranscription 텍스트:", filtered);
+                    if (DebugFlags.debugLog) console.log("[GeminiLive] outputTranscription 텍스트:", filtered);
                     currentText = filtered; // outputTranscription을 우선시함
                 }
             }
@@ -248,24 +263,34 @@ export class GeminiLiveSession {
             // 사용자 입력 오디오의 텍스트 전사 (inputAudioTranscription 활성화 시 수신)
             const inputTranscript = serverContent?.inputTranscription?.text;
             if (inputTranscript) {
-                if (GeminiLiveSession.debugLog) console.log("[GeminiLive] 사용자 발화 인식(STT):", inputTranscript);
+                if (DebugFlags.debugLog) console.log("[GeminiLive] 사용자 발화 인식(STT):", inputTranscript);
+                if (DebugFlags.timingLog) console.log(`[⏱️ 3-TRANSCRIPT] t=${performance.now().toFixed(0)}ms text="${inputTranscript}"`);
                 this.callbacks.onTranscript?.(inputTranscript);
             }
 
             // 턴 완료
             if (serverContent?.turnComplete) {
-                if (GeminiLiveSession.debugLog) console.log("[GeminiLive] 응답 턴 완료 (turnComplete)");
+                if (DebugFlags.debugLog) console.log("[GeminiLive] 응답 턴 완료 (turnComplete)");
                 this.callbacks.onTurnComplete?.();
             }
 
             // 인터럽트 발생 시 (사용자가 말을 가로챘을 때)
             if (message.serverContent?.interrupted) {
-                if (GeminiLiveSession.debugLog) console.log("[GeminiLive] AI 응답 인터럽트 발생");
+                if (DebugFlags.debugLog) console.log("[GeminiLive] AI 응답 인터럽트 발생");
             }
 
             // 셋업 완료
             if (message.setupComplete) {
-                if (GeminiLiveSession.debugLog) console.log("[GeminiLive] 세션 설정 완료 (setupComplete)");
+                if (DebugFlags.debugLog) console.log("[GeminiLive] 세션 설정 완료 (setupComplete)");
+            }
+
+            // 세션 복구 핸들 업데이트 — resumable=true인 핸들을 저장해두면 재연결 시 컨텍스트 복원 가능
+            const resumptionUpdate = message.sessionResumptionUpdate;
+            if (resumptionUpdate?.newHandle) {
+                if (DebugFlags.debugLog) {
+                    console.log(`[GeminiLive] 세션 복구 핸들 수신 (resumable=${resumptionUpdate.resumable}): ${resumptionUpdate.newHandle.substring(0, 20)}...`);
+                }
+                this.callbacks.onSessionResumptionUpdate?.(resumptionUpdate.newHandle, resumptionUpdate.resumable ?? false);
             }
         } catch (error) {
             console.error("[GeminiLive] 메시지 처리 중 예외 발생:", error);
@@ -283,6 +308,7 @@ export class GeminiLiveSession {
         }
         try {
             const base64 = this.arrayBufferToBase64(pcmData);
+            if (DebugFlags.timingLog) console.log(`[⏱️ 2-GEMINI-SEND] t=${performance.now().toFixed(0)}ms`);
             this.session.sendRealtimeInput({
                 audio: {
                     data: base64,

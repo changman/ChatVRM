@@ -2,6 +2,7 @@
  * 오디오 처리 유틸리티 모듈.
  * 마이크 캡처, Float32Array와 PCM Int16 간 변환 기능을 제공합니다.
  */
+import { DebugFlags } from "./debugFlags";
 
 /**
  * Float32Array 오디오 데이터를 16-bit signed integer PCM ArrayBuffer로 변환합니다.
@@ -59,11 +60,13 @@ export class MicrophoneCapture {
             this.audioContext = new AudioContext({ sampleRate: this.targetSampleRate });
             this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
 
-            // ScriptProcessorNode로 오디오 청크 캡처 (4096 샘플 단위)
-            this.processorNode = this.audioContext.createScriptProcessor(4096, 1, 1);
+            // ScriptProcessorNode로 오디오 청크 캡처 (8192 샘플 = ~512ms 단위)
+            // 4096(256ms)은 음절 단위로 전송되어 partial transcript가 잦음
+            this.processorNode = this.audioContext.createScriptProcessor(8192, 1, 1);
             this.processorNode.onaudioprocess = (event) => {
                 const inputData = event.inputBuffer.getChannelData(0);
                 const pcm = float32ToPcm16(inputData);
+                if (DebugFlags.timingLog) console.log(`[⏱️ 1-MIC-SEND] t=${performance.now().toFixed(0)}ms size=${pcm.byteLength}bytes`);
                 this.onAudioChunk(pcm);
             };
 

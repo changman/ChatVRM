@@ -1,4 +1,5 @@
 import { LipSyncAnalyzeResult } from "./lipSyncAnalyzeResult";
+import { DebugFlags } from "@/utils/debugFlags";
 
 const TIME_DOMAIN_DATA_LENGTH = 2048;
 
@@ -99,7 +100,10 @@ export class LipSync {
 
       // raw PCM이면 WAV 헤더를 붙여서 디코딩
       const decodableBuffer = isRawPcm ? pcmToWav(buffer, sampleRate) : buffer;
+      const t1 = performance.now();
       const audioBuffer = await this.audio.decodeAudioData(decodableBuffer);
+      const t2 = performance.now();
+      if (DebugFlags.timingLog) console.log(`[⏱️ 5-DECODE] t=${t2.toFixed(0)}ms decode=${( t2 - t1).toFixed(1)}ms duration=${audioBuffer.duration.toFixed(2)}s`);
 
       const bufferSource = this.audio.createBufferSource();
       bufferSource.buffer = audioBuffer;
@@ -107,6 +111,7 @@ export class LipSync {
       bufferSource.connect(this.audio.destination);
       bufferSource.connect(this.analyser);
       bufferSource.start();
+      if (DebugFlags.timingLog) console.log(`[⏱️ 6-PLAY-START] t=${performance.now().toFixed(0)}ms`);
       if (onEnded) {
         bufferSource.addEventListener("ended", onEnded);
       }
