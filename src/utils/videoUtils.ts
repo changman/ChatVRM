@@ -7,6 +7,12 @@
 /** low 해상도 프레임 크기 (Gemini media_resolution: low 권장) */
 const FRAME_SIZE = 256;
 
+/** JPEG 캡처 품질 (0.0~1.0). NEXT_PUBLIC_CAMERA_FRAME_QUALITY 환경변수로 조정 가능 */
+const FRAME_QUALITY = (() => {
+    const val = parseFloat(process.env.NEXT_PUBLIC_CAMERA_FRAME_QUALITY ?? "0.8");
+    return isNaN(val) ? 0.8 : Math.max(0, Math.min(1, val));
+})();
+
 /**
  * 카메라 스트림을 캡처하여 1fps 프레임 콜백을 제공하는 관리 클래스.
  * mediaStream을 직접 노출하여 PiP 프리뷰에서 재사용할 수 있습니다.
@@ -64,7 +70,7 @@ export class CameraCapture {
 
         ctx.drawImage(this.videoEl, sx, sy, side, side, 0, 0, FRAME_SIZE, FRAME_SIZE);
 
-        const dataUrl = this.canvas.toDataURL("image/jpeg", 0.8);
+        const dataUrl = this.canvas.toDataURL("image/jpeg", FRAME_QUALITY);
         const base64 = dataUrl.split(",")[1];
         if (base64) {
             this.onFrame(base64, "image/jpeg");
