@@ -1,5 +1,11 @@
 import { FaceDetector, FilesetResolver, Detection } from "@mediapipe/tasks-vision";
 
+/** 동시 감지 최대 얼굴 수 (NEXT_PUBLIC_FACE_DETECTOR_NUM_FACES 환경변수로 조정 가능, 기본 1) */
+const NUM_FACES = (() => {
+    const val = parseInt(process.env.NEXT_PUBLIC_FACE_DETECTOR_NUM_FACES ?? "1", 10);
+    return isNaN(val) || val < 1 ? 1 : val;
+})();
+
 /**
  * 얼굴 감지 결과의 바운딩 박스 (0.0~1.0 정규화 좌표).
  */
@@ -104,7 +110,7 @@ export class FaceDetectorService {
         const { videoWidth: w, videoHeight: h } = this.videoEl;
         if (!w || !h) return [];
 
-        return detections.map((d) => ({
+        return detections.slice(0, NUM_FACES).map((d) => ({
             x: Math.max(0, (d.boundingBox?.originX ?? 0) / w),
             y: Math.max(0, (d.boundingBox?.originY ?? 0) / h),
             width: Math.min(1, (d.boundingBox?.width ?? 0) / w),
